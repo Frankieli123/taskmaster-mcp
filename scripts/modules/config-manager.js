@@ -13,20 +13,37 @@ const __dirname = path.dirname(__filename);
 // Load supported models from JSON file using the calculated __dirname
 let MODEL_MAP;
 try {
-	const supportedModelsRaw = fs.readFileSync(
-		path.join(__dirname, 'supported-models.json'),
-		'utf-8'
-	);
+	// Try to load from the current module directory first
+	let supportedModelsPath = path.join(__dirname, 'supported-models.json');
+
+	// If not found, try to load from the package root (for MCP usage)
+	if (!fs.existsSync(supportedModelsPath)) {
+		// Find the package root by looking for package.json
+		let currentDir = __dirname;
+		while (currentDir !== path.dirname(currentDir)) {
+			const packageJsonPath = path.join(currentDir, 'package.json');
+			if (fs.existsSync(packageJsonPath)) {
+				supportedModelsPath = path.join(currentDir, 'scripts', 'modules', 'supported-models.json');
+				break;
+			}
+			currentDir = path.dirname(currentDir);
+		}
+	}
+
+	const supportedModelsRaw = fs.readFileSync(supportedModelsPath, 'utf-8');
 	MODEL_MAP = JSON.parse(supportedModelsRaw);
 } catch (error) {
-	console.error(
-		chalk.red(
-			'FATAL ERROR: Could not load supported-models.json. Please ensure the file exists and is valid JSON.'
-		),
-		error
+	console.warn(
+		chalk.yellow(
+			'Warning: Could not load supported-models.json. Using fallback model configuration.'
+		)
 	);
-	MODEL_MAP = {}; // Default to empty map on error to avoid crashing, though functionality will be limited
-	process.exit(1); // Exit if models can't be loaded
+	// Provide a minimal fallback MODEL_MAP instead of exiting
+	MODEL_MAP = {
+		anthropic: [{ id: 'claude-3-7-sonnet-20250219', allowed_roles: ['main', 'fallback'] }],
+		perplexity: [{ id: 'sonar-pro', allowed_roles: ['research'] }],
+		polo: [{ id: 'gemini-2.5-pro-preview-06-05', allowed_roles: ['main', 'fallback'] }]
+	};
 }
 
 // Define valid providers dynamically from the loaded MODEL_MAP
