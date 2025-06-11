@@ -712,7 +712,7 @@ function setupMCPConfiguration(targetDir) {
 	const newMCPServer = {
 		'task-master-ai': {
 			command: 'npx',
-			args: ['-y', '--package=task-master-ai', 'task-master-ai'],
+			args: ['-y', '--package=task-master-ai-polo', 'task-master-ai'],
 			env: {
 				ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY_HERE',
 				PERPLEXITY_API_KEY: 'PERPLEXITY_API_KEY_HERE',

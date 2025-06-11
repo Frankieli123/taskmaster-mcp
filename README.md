@@ -107,7 +107,7 @@ MCP (Model Control Protocol) lets you run Task Master directly from your editor.
   "servers": {
     "taskmaster-ai": {
       "command": "npx",
-      "args": ["-y", "--package=task-master-ai", "task-master-ai"],
+      "args": ["-y", "--package=task-master-ai-polo", "task-master-ai"],
       "env": {
         "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
         "PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",
@@ -191,10 +191,10 @@ Use your AI assistant to:
 
 ```bash
 # Install globally
-npm install -g task-master-ai
+npm install -g task-master-ai-polo
 
 # OR install locally within your project
-npm install task-master-ai
+npm install task-master-ai-polo
 ```
 
 #### Initialize a new project
