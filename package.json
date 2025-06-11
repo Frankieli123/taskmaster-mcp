@@ -1,13 +1,14 @@
 {
 	"name": "task-master-ai-polo",
-	"version": "1.0.0",
+	"version": "1.0.3",
 	"description": "A task management system for ambitious AI-driven development with PoloAI support. Enhanced version with Gemini models integration.",
 	"main": "index.js",
 	"type": "module",
 	"bin": {
 		"task-master": "bin/task-master.js",
-		"task-master-mcp": "mcp-server/server.js",
 		"task-master-ai": "mcp-server/server.js",
+		"task-master-ai-polo": "bin/task-master.js",
+		"task-master-mcp": "mcp-server/server.js",
 		"task-master-polo": "mcp-server/server.js"
 	},
 	"scripts": {
@@ -17,7 +18,7 @@
 		"test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
 		"test:e2e": "./tests/e2e/run_e2e.sh",
 		"test:e2e-report": "./tests/e2e/run_e2e.sh --analyze-log",
-		"prepare": "chmod +x bin/task-master.js mcp-server/server.js",
+		"prepare": "echo 'Preparing package for publication'",
 		"changeset": "changeset",
 		"release": "changeset publish",
 		"inspector": "npx @modelcontextprotocol/inspector node mcp-server/server.js",
