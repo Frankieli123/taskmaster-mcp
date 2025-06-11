@@ -426,6 +426,27 @@
 	],
 	"polo": [
 		{
+			"id": "gemini-2.5-flash-preview-05-20-nothinking",
+			"swe_score": 0.5,
+			"cost_per_1m_tokens": { "input": 0.15, "output": 0.6 },
+			"allowed_roles": ["main", "fallback"],
+			"max_tokens": 1048000
+		},
+		{
+			"id": "gemini-2.5-flash-preview-05-20",
+			"swe_score": 0.5,
+			"cost_per_1m_tokens": { "input": 0.15, "output": 0.6 },
+			"allowed_roles": ["main", "fallback"],
+			"max_tokens": 1048000
+		},
+		{
+			"id": "gemini-2.5-pro-preview-05-06-net",
+			"swe_score": 0.638,
+			"cost_per_1m_tokens": { "input": 0.5, "output": 2.0 },
+			"allowed_roles": ["main", "fallback"],
+			"max_tokens": 1048000
+		},
+		{
 			"id": "gemini-2.5-pro-preview-06-05",
 			"swe_score": 0.638,
 			"cost_per_1m_tokens": { "input": 0.5, "output": 2.0 },
@@ -433,32 +454,18 @@
 			"max_tokens": 1048000
 		},
 		{
-			"id": "gemini-2.5-flash-preview-06-05",
+			"id": "gemini-2.5-pro-preview-05-06-thinking",
+			"swe_score": 0.638,
+			"cost_per_1m_tokens": { "input": 0.5, "output": 2.0 },
+			"allowed_roles": ["main", "fallback"],
+			"max_tokens": 1048000
+		},
+		{
+			"id": "gemini-2.5-flash-net",
 			"swe_score": 0.5,
 			"cost_per_1m_tokens": { "input": 0.15, "output": 0.6 },
 			"allowed_roles": ["main", "fallback"],
 			"max_tokens": 1048000
-		},
-		{
-			"id": "gemini-2.0-flash",
-			"swe_score": 0.754,
-			"cost_per_1m_tokens": { "input": 0.15, "output": 0.6 },
-			"allowed_roles": ["main", "fallback"],
-			"max_tokens": 1048000
-		},
-		{
-			"id": "gemini-1.5-pro",
-			"swe_score": 0.4,
-			"cost_per_1m_tokens": { "input": 1.25, "output": 5.0 },
-			"allowed_roles": ["main", "fallback"],
-			"max_tokens": 2097152
-		},
-		{
-			"id": "gemini-1.5-flash",
-			"swe_score": 0.3,
-			"cost_per_1m_tokens": { "input": 0.075, "output": 0.3 },
-			"allowed_roles": ["main", "fallback"],
-			"max_tokens": 1048576
 		}
 	]
 }
