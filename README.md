@@ -205,17 +205,49 @@ npm install task-master-ai-polo
 # If installed globally
 task-master init
 
-# If installed locally
-npx task-master init
+# If installed locally or using latest version
+npx task-master-ai-polo init
 ```
 
 This will prompt you for project details and set up a new project with the necessary files and structure.
+
+#### PoloAI-Specific Usage
+
+```bash
+# Quick start with PoloAI
+npx task-master-ai-polo init
+npx task-master-ai-polo models --setup
+
+# Set your preferred Gemini model
+npx task-master-ai-polo models --set-main gemini-2.5-flash-preview-05-20-nothinking
+
+# Check current model configuration
+npx task-master-ai-polo models
+
+# Parse PRD with PoloAI
+npx task-master-ai-polo parse-prd --input=your-prd.txt --research
+
+# Add task with PoloAI
+npx task-master-ai-polo add-task --prompt="Create a new feature" --research
+```
 
 #### Common Commands
 
 ```bash
 # Initialize a new project
 task-master init
+# OR with latest features
+npx task-master-ai-polo init
+
+# Configure AI models (interactive setup)
+task-master models --setup
+# OR
+npx task-master-ai-polo models --setup
+
+# Set specific PoloAI model
+task-master models --set-main gemini-2.5-flash-preview-05-20-nothinking
+# OR
+npx task-master-ai-polo models --set-main gemini-2.5-flash-preview-05-20-nothinking
 
 # Parse a PRD and generate tasks
 task-master parse-prd your-prd.txt
@@ -234,17 +266,31 @@ task-master generate
 
 ### If `task-master init` doesn't respond
 
-Try running it with Node directly:
+Try using the enhanced version directly:
 
 ```bash
-node node_modules/claude-task-master/scripts/init.js
+npx task-master-ai-polo init
 ```
 
-Or clone the repository and run:
+Or if you have issues with MCP:
 
 ```bash
-git clone https://github.com/eyaltoledano/claude-task-master.git
-cd claude-task-master
+# Clear npm cache
+npm cache clean --force
+
+# Clear npx cache
+npx clear-npx-cache
+
+# Try again
+npx task-master-ai-polo init
+```
+
+For development, clone the enhanced repository:
+
+```bash
+git clone https://github.com/Frankieli123/taskmaster-mcp.git
+cd taskmaster-mcp
+npm install
 node scripts/init.js
 ```
 
