@@ -15,7 +15,7 @@ An enhanced version of Task Master AI with integrated **PoloAI support** for Goo
 ## 🚀 What's New in This Enhanced Version
 
 - **🤖 PoloAI Integration**: Full support for Google Gemini models
-- **⚡ 6 Gemini Models**: Including Gemini 2.5 Pro, Gemini 2.0 Flash, and more
+- **⚡ 6 Gemini Models**: Including Gemini 2.5 Pro, Gemini 2.5 Flash variants, and specialized models
 - **💰 Cost-Effective**: Access powerful Gemini models at competitive rates
 - **🔌 OpenAI-Compatible**: Seamless integration using familiar API patterns
 - **🎯 All Original Features**: Complete Task Master functionality preserved
@@ -135,14 +135,16 @@ Open Cursor Settings (Ctrl+Shift+J) ➡ Click on MCP tab on the left ➡ Enable 
 **For PoloAI/Gemini models**, in your editor's AI chat pane, say:
 
 ```txt
-Change the main model to polo/gemini-2.5-pro-preview-06-05
+Change the main model to polo/gemini-2.5-flash-preview-05-20-nothinking
 ```
 
 **Available PoloAI Models:**
-- `polo/gemini-2.5-pro-preview-06-05` - Best performance (Score: 0.638)
-- `polo/gemini-2.0-flash` - Balanced performance (Score: 0.754)
-- `polo/gemini-1.5-pro` - General purpose (Score: 0.4)
-- `polo/gemini-1.5-flash` - Fast responses (Score: 0.3)
+- `polo/gemini-2.5-flash-preview-05-20-nothinking` - Fast, no thinking mode (Score: 0.5)
+- `polo/gemini-2.5-flash-preview-05-20` - Fast with thinking (Score: 0.5)
+- `polo/gemini-2.5-pro-preview-05-06-net` - Pro with network access (Score: 0.638)
+- `polo/gemini-2.5-pro-preview-06-05` - Latest Pro model (Score: 0.638)
+- `polo/gemini-2.5-pro-preview-05-06-thinking` - Pro with thinking mode (Score: 0.638)
+- `polo/gemini-2.5-flash-net` - Flash with network access (Score: 0.5)
 
 **For other models**, in your editor's AI chat pane, say:
 
