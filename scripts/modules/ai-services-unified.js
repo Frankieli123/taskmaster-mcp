@@ -174,7 +174,8 @@ function _resolveApiKey(providerName, session, projectRoot = null) {
 		xai: 'XAI_API_KEY',
 		ollama: 'OLLAMA_API_KEY',
 		bedrock: 'AWS_ACCESS_KEY_ID',
-		vertex: 'GOOGLE_API_KEY'
+		vertex: 'GOOGLE_API_KEY',
+		polo: 'OPENAI_API_KEY' // Polo uses the same key format as OpenAI
 	};
 
 	const envVarName = keyMap[providerName];
