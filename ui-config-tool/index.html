@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Master AI - 配置工具</title>
+    <link rel="stylesheet" href="src/styles/main.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+    <div id="app">
+        <header class="app-header">
+            <div class="header-content">
+                <h1>
+                    <span class="logo">🤖</span>
+                    Task Master AI
+                    <span class="subtitle">配置工具</span>
+                </h1>
+                <p class="description">管理您的 Task Master 安装的 API 端点和 AI 模型</p>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <div class="container">
+                <!-- Navigation Tabs -->
+                <nav class="tab-nav">
+                    <button class="tab-button active" data-tab="providers">
+                        <span class="tab-icon">🔌</span>
+                        服务商
+                    </button>
+                    <button class="tab-button" data-tab="models">
+                        <span class="tab-icon">🧠</span>
+                        模型
+                    </button>
+                    <button class="tab-button" data-tab="config">
+                        <span class="tab-icon">⚙️</span>
+                        配置
+                    </button>
+                </nav>
+
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Providers Tab -->
+                    <div id="providers-tab" class="tab-pane active">
+                        <div class="section-header">
+                            <h2>API 服务商</h2>
+                            <button id="add-provider-btn" class="btn btn-primary">
+                                <span class="btn-icon">➕</span>
+                                添加服务商
+                            </button>
+                        </div>
+                        <div id="providers-list" class="providers-grid">
+                            <!-- Provider cards will be dynamically generated -->
+                        </div>
+                    </div>
+
+                    <!-- Models Tab -->
+                    <div id="models-tab" class="tab-pane">
+                        <div class="section-header">
+                            <h2>AI 模型</h2>
+                            <button id="add-model-btn" class="btn btn-primary">
+                                <span class="btn-icon">➕</span>
+                                添加模型
+                            </button>
+                        </div>
+                        <div id="models-list" class="models-grid">
+                            <!-- Model cards will be dynamically generated -->
+                        </div>
+                    </div>
+
+                    <!-- Configuration Tab -->
+                    <div id="config-tab" class="tab-pane">
+                        <div class="section-header">
+                            <h2>配置管理</h2>
+                        </div>
+
+                        <!-- Project Path Section -->
+                        <div class="project-path-section">
+                            <h3>TaskMaster 项目路径</h3>
+                            <div class="project-path-card">
+                                <div class="project-path-info">
+                                    <div class="path-display">
+                                        <label>当前路径：</label>
+                                        <span id="project-path-display">未选择项目</span>
+                                    </div>
+                                    <div class="path-status">
+                                        <span id="project-path-status" class="project-status warning">⚠️ 请选择 TaskMaster 项目</span>
+                                    </div>
+                                </div>
+                                <div class="project-path-actions">
+                                    <button id="select-project-btn" class="btn btn-primary">
+                                        <span class="btn-icon">📁</span>
+                                        选择项目
+                                    </button>
+                                    <button id="clear-project-btn" class="btn btn-secondary">
+                                        <span class="btn-icon">🗑️</span>
+                                        清除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-actions">
+                            <div class="action-card">
+                                <h3>导出配置</h3>
+                                <p>将当前设置保存到 Task Master 配置文件</p>
+                                <button id="export-config-btn" class="btn btn-success">
+                                    <span class="btn-icon">💾</span>
+                                    导出到 Task Master
+                                </button>
+                            </div>
+                            <div class="action-card">
+                                <h3>导入配置</h3>
+                                <p>加载现有的 Task Master 配置</p>
+                                <button id="import-config-btn" class="btn btn-secondary">
+                                    <span class="btn-icon">📥</span>
+                                    从 Task Master 导入
+                                </button>
+                            </div>
+                            <div class="action-card">
+                                <h3>重置配置</h3>
+                                <p>清除所有设置并重新开始</p>
+                                <button id="reset-config-btn" class="btn btn-danger">
+                                    <span class="btn-icon">🗑️</span>
+                                    重置全部
+                                </button>
+                            </div>
+                            <div class="action-card">
+                                <h3>自动加载配置</h3>
+                                <p>从当前TaskMaster项目自动加载配置</p>
+                                <button id="auto-load-config-btn" class="btn btn-primary">
+                                    <span class="btn-icon">🔄</span>
+                                    自动加载
+                                </button>
+                            </div>
+                            <div class="action-card">
+                                <h3>API供应商测试</h3>
+                                <p>测试API Token和网络连通性</p>
+                                <button id="test-providers-btn" class="btn btn-secondary">
+                                    <span class="btn-icon">🔌</span>
+                                    测试所有供应商
+                                </button>
+                            </div>
+                            <div class="action-card">
+                                <h3>模型API测试</h3>
+                                <p>测试模型API对接功能</p>
+                                <button id="test-models-api-btn" class="btn btn-secondary">
+                                    <span class="btn-icon">🧠</span>
+                                    测试模型API
+                                </button>
+                            </div>
+                            <div class="action-card">
+                                <h3>TaskMaster集成测试</h3>
+                                <p>测试模型在TaskMaster中的工作状态</p>
+                                <button id="test-taskmaster-btn" class="btn btn-secondary">
+                                    <span class="btn-icon">⚙️</span>
+                                    测试TaskMaster集成
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 保存按钮固定在右下角 -->
+        <div class="floating-save-btn">
+            <button id="save-btn" class="btn btn-primary">
+                <span class="btn-icon">💾</span>
+                保存更改
+            </button>
+        </div>
+    </div>
+
+    <!-- Modals will be dynamically created -->
+    <div id="modal-overlay" class="modal-overlay hidden"></div>
+
+    <script type="module" src="src/main.js"></script>
+    <script type="module" src="tests/ConfigTransformer.test.js"></script>
+    <script type="module" src="tests/ProviderValidator.test.js"></script>
+</body>
+</html>
