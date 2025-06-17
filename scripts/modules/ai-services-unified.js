@@ -40,7 +40,8 @@ import {
 	BedrockAIProvider,
 	AzureProvider,
 	VertexAIProvider,
-	PoloAIProvider
+	TProvider,
+	WhiProvider
 } from '../../src/ai-providers/index.js';
 
 // Create provider instances
@@ -55,7 +56,8 @@ const PROVIDERS = {
 	bedrock: new BedrockAIProvider(),
 	azure: new AzureProvider(),
 	vertex: new VertexAIProvider(),
-	polo: new PoloAIProvider()
+	t: new TProvider(),
+	whi: new WhiProvider()
 };
 
 // Helper function to get cost for a specific model
@@ -164,6 +166,8 @@ function _extractErrorMessage(error) {
  */
 function _resolveApiKey(providerName, session, projectRoot = null) {
 	const keyMap = {
+			whi: 'WHI_API_KEY',
+			t: 'T_API_KEY',
 		openai: 'OPENAI_API_KEY',
 		anthropic: 'ANTHROPIC_API_KEY',
 		google: 'GOOGLE_API_KEY',
@@ -174,17 +178,10 @@ function _resolveApiKey(providerName, session, projectRoot = null) {
 		xai: 'XAI_API_KEY',
 		ollama: 'OLLAMA_API_KEY',
 		bedrock: 'AWS_ACCESS_KEY_ID',
-		vertex: 'GOOGLE_API_KEY',
-		polo: 'OPENAI_API_KEY' // Polo uses the same key format as OpenAI
-	};
+		vertex: 'GOOGLE_API_KEY'
+		};
 
-	const envVarName = keyMap[providerName];
-	if (!envVarName) {
-		throw new Error(
-			`Unknown provider '${providerName}' for API key resolution.`
-		);
-	}
-
+	const envVarName = keyMap[providerName] || `${providerName.toUpperCase()}_API_KEY`;
 	const apiKey = resolveEnvVariable(envVarName, session, projectRoot);
 
 	// Special handling for providers that can use alternative auth

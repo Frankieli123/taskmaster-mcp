@@ -297,6 +297,22 @@ program
 		runDevScript(args);
 	});
 
+// Add MCP server command
+program
+	.command('mcp')
+	.description('Start the MCP server for IDE integration')
+	.action(() => {
+		const mcpServerPath = resolve(__dirname, '../mcp-server/server.js');
+		const child = spawn('node', [mcpServerPath], {
+			stdio: 'inherit',
+			cwd: process.cwd()
+		});
+
+		child.on('close', (code) => {
+			process.exit(code);
+		});
+	});
+
 // Use a temporary Command instance to get all command definitions
 const tempProgram = new Command();
 registerCommands(tempProgram);

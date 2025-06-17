@@ -42,7 +42,7 @@ try {
 	MODEL_MAP = {
 		anthropic: [{ id: 'claude-3-7-sonnet-20250219', allowed_roles: ['main', 'fallback'] }],
 		perplexity: [{ id: 'sonar-pro', allowed_roles: ['research'] }],
-		polo: [{ id: 'gemini-2.5-pro-preview-06-05', allowed_roles: ['main', 'fallback'] }]
+		poloai: [{ id: 'poloai-gemini-2.5-pro-preview-06-05', allowed_roles: ['main', 'fallback'] }]
 	};
 }
 
@@ -502,6 +502,7 @@ function isApiKeySet(providerName, session = null, projectRoot = null) {
 	}
 
 	const keyMap = {
+			t: 'T_API_KEY',
 		openai: 'OPENAI_API_KEY',
 		anthropic: 'ANTHROPIC_API_KEY',
 		google: 'GOOGLE_API_KEY',
@@ -511,9 +512,8 @@ function isApiKeySet(providerName, session = null, projectRoot = null) {
 		openrouter: 'OPENROUTER_API_KEY',
 		xai: 'XAI_API_KEY',
 		vertex: 'GOOGLE_API_KEY', // Vertex uses the same key as Google
-		polo: 'OPENAI_API_KEY' // Polo uses the same key format as OpenAI
-		// Add other providers as needed
-	};
+		whi: 'WHI_API_KEY', // Whi uses its own API key
+		};
 
 	const providerKey = providerName?.toLowerCase();
 	if (!providerKey || !keyMap[providerKey]) {
@@ -559,7 +559,7 @@ function getMcpApiKeyStatus(providerName, projectRoot = null) {
 		const mcpConfigRaw = fs.readFileSync(mcpConfigPath, 'utf-8');
 		const mcpConfig = JSON.parse(mcpConfigRaw);
 
-		const mcpEnv = mcpConfig?.mcpServers?.['taskmaster-ai']?.env;
+		const mcpEnv = mcpConfig?.mcpServers?.['taskmaster-api']?.env;
 		if (!mcpEnv) {
 			// console.warn(chalk.yellow('Warning: Could not find taskmaster-ai env in mcp.json.'));
 			return false; // Structure missing
@@ -569,7 +569,7 @@ function getMcpApiKeyStatus(providerName, projectRoot = null) {
 		let placeholderValue = null;
 
 		switch (providerName) {
-			case 'anthropic':
+case 'anthropic':
 				apiKeyToCheck = mcpEnv.ANTHROPIC_API_KEY;
 				placeholderValue = 'YOUR_ANTHROPIC_API_KEY_HERE';
 				break;
@@ -606,10 +606,12 @@ function getMcpApiKeyStatus(providerName, projectRoot = null) {
 			case 'vertex':
 				apiKeyToCheck = mcpEnv.GOOGLE_API_KEY; // Vertex uses Google API key
 				placeholderValue = 'YOUR_GOOGLE_API_KEY_HERE';
-				break;
-			case 'polo':
-				apiKeyToCheck = mcpEnv.OPENAI_API_KEY; // Polo uses OpenAI API key format
-				placeholderValue = 'YOUR_OPENAI_API_KEY_HERE';
+				break;case 'whi':
+				apiKeyToCheck = mcpEnv.WHI_API_KEY; // whi uses its own API key
+				placeholderValue = 'YOUR_WHI_API_KEY_HERE';
+				break;case 't':
+				apiKeyToCheck = mcpEnv.T_API_KEY; // T uses its own API key
+				placeholderValue = 'YOUR_T_API_KEY_HERE';
 				break;
 			default:
 				return false; // Unknown provider

@@ -1,4 +1,6 @@
-# Task Master AI - UI Configuration Tool
+# TaskMaster Tool
+
+[English](README.md) | [中文](README_CN.md)
 
 A modern, web-based configuration tool for managing API providers and AI models in Task Master AI projects.
 
@@ -15,14 +17,15 @@ A modern, web-based configuration tool for managing API providers and AI models 
 
 ### Prerequisites
 
-- Node.js 16+ 
+- Node.js 16+
 - npm or yarn
 
 ### Installation
 
-1. Navigate to the UI configuration tool directory:
+1. Clone the repository:
 ```bash
-cd ui-config-tool
+git clone https://github.com/Frankieli123/taskmaster-tool.git
+cd taskmaster-tool
 ```
 
 2. Install dependencies:
@@ -136,7 +139,7 @@ Use the test buttons to verify:
 
 ### Project Structure
 ```
-ui-config-tool/
+taskmaster-tool/
 ├── src/
 │   ├── components/
 │   │   ├── ProviderConfig.js    # Provider management
@@ -148,6 +151,8 @@ ui-config-tool/
 │   │   ├── configManager.js    # Configuration management
 │   │   └── validation.js       # Input validation
 │   └── main.js                 # Application entry point
+├── tests/                      # Test files
+├── docs/                       # Documentation
 ├── index.html                  # Main HTML file
 ├── package.json               # Dependencies and scripts
 └── README.md                  # This file
@@ -215,6 +220,8 @@ npm run preview
 4. Test thoroughly
 5. Submit a pull request
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
 ## License
 
 MIT License - see LICENSE file for details
@@ -224,4 +231,4 @@ MIT License - see LICENSE file for details
 For issues and questions:
 - Check the troubleshooting section
 - Review Task Master AI documentation
-- Submit issues on the project repository
+- Submit issues on [GitHub Issues](https://github.com/Frankieli123/taskmaster-tool/issues)

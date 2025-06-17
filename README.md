@@ -33,7 +33,7 @@ For more detailed information, check out the documentation in the `docs` directo
 
 ##### Quick Install for Cursor 1.0+ (One-Click)
 
-[<img src="https://cursor.com/deeplink/mcp-install-dark.png" alt="Add Task Master MCP server to Cursor" style="max-height: 26px;">](cursor://anysphere.cursor-deeplink/mcp/install?name=taskmaster-ai&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIi0tcGFja2FnZT10YXNrLW1hc3Rlci1haSIsInRhc2stbWFzdGVyLWFpIl0sImVudiI6eyJBTlRIUk9QSUNfQVBJX0tFWSI6IllPVVJfQU5USFJPUElDX0FQSV9LRVlfSEVSRSIsIlBFUlBMRVhJVFlfQVBJX0tFWSI6IllPVVJfUEVSUExFWElUWV9BUElfS0VZX0hFUkUiLCJPUEVOQUlfQVBJX0tFWSI6IllPVVJfT1BFTkFJX0tFWV9IRVJFIiwiR09PR0xFX0FQSV9LRVkiOiJZT1VSX0dPT0dMRV9LRVlfSEVSRSIsIk1JU1RSQUxfQVBJX0tFWSI6IllPVVJfTUlTVFJBTF9LRVlfSEVSRSIsIk9QRU5ST1VURVJfQVBJX0tFWSI6IllPVVJfT1BFTlJPVVRFUl9LRVlfSEVSRSIsIlhBSV9BUElfS0VZIjoiWU9VUl9YQUlfS0VZX0hFUkUiLCJBWlVSRV9PUEVOQUJFX0FQSV9LRVkiOiJZT1VSX0FaVVJFX0tFWV9IRVJFIiwiT0xMQU1BX0FQSV9LRVkiOiJZT1VSX09MTEFNQV9BUElfS0VZX0hFUkUifX0%3D)
+[<img src="https://cursor.com/deeplink/mcp-install-dark.png" alt="Add Task Master MCP server to Cursor" style="max-height: 26px;">](cursor://anysphere.cursor-deeplink/mcp/install?name=taskmaster-api&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIi0tcGFja2FnZT10YXNrbWFzdGVyLWFwaSIsInRhc2ttYXN0ZXItYXBpIl0sImVudiI6eyJBTlRIUk9QSUNfQVBJX0tFWSI6IllPVVJfQU5USFJPUElDX0FQSV9LRVlfSEVSRSIsIlBFUlBMRVhJVFlfQVBJX0tFWSI6IllPVVJfUEVSUExFWElUWV9BUElfS0VZX0hFUkUiLCJPUEVOQUlfQVBJX0tFWSI6IllPVVJfT1BFTkFJX0tFWV9IRVJFIiwiR09PR0xFX0FQSV9LRVkiOiJZT1VSX0dPT0dMRV9LRVlfSEVSRSIsIk1JU1RSQUxfQVBJX0tFWSI6IllPVVJfTUlTVFJBTF9LRVlfSEVSRSIsIk9QRU5ST1VURVJfQVBJX0tFWSI6IllPVVJfT1BFTlJPVVRFUl9LRVlfSEVSRSIsIlhBSV9BUElfS0VZIjoiWU9VUl9YQUlfS0VZX0hFUkUiLCJBWlVSRV9PUEVOQUJFX0FQSV9LRVkiOiJZT1VSX0FaVVJFX0tFWV9IRVJFIiwiT0xMQU1BX0FQSV9LRVkiOiJZT1VSX09MTEFNQV9BUElfS0VZX0hFUkUifX0%3D)
 
 > **Note:** After clicking the install button, you'll still need to add your API keys to the configuration. The button installs the MCP server with placeholder keys that you'll need to replace with your actual API keys.
 
@@ -77,9 +77,9 @@ MCP (Model Control Protocol) lets you run Task Master directly from your editor.
 ```json
 {
   "mcpServers": {
-    "taskmaster-ai": {
+    "taskmaster-api": {
       "command": "npx",
-      "args": ["-y", "--package=task-master-ai-polo", "task-master-ai"],
+      "args": ["-y", "--package=taskmaster-api", "taskmaster-api"],
       "env": {
         "OPENAI_API_KEY": "YOUR_POLO_API_KEY_HERE",
         "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
@@ -105,9 +105,9 @@ MCP (Model Control Protocol) lets you run Task Master directly from your editor.
 ```json
 {
   "servers": {
-    "taskmaster-ai": {
+    "taskmaster-api": {
       "command": "npx",
-      "args": ["-y", "--package=task-master-ai-polo", "task-master-ai"],
+      "args": ["-y", "--package=taskmaster-api", "taskmaster-api"],
       "env": {
         "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
         "PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",
@@ -141,6 +141,9 @@ Change the main model to polo/gemini-2.5-flash-preview-05-20-nothinking
 **Available PoloAI Models:**
 - `polo/gemini-2.5-flash-preview-05-20-nothinking` - Fast, no thinking mode (Score: 0.5)
 - `polo/gemini-2.5-flash-preview-05-20` - Fast with thinking (Score: 0.5)
+- `polo/gemini-2.5-flash-preview-04-17-thinking` - Fast with thinking mode (Score: 0.5)
+- `polo/gemini-2.5-flash-preview-04-17-nothinking` - Fast, no thinking mode (Score: 0.5)
+- `polo/gemini-2.5-flash-preview-04-17` - Fast standard version (Score: 0.5)
 - `polo/gemini-2.5-pro-preview-05-06-net` - Pro with network access (Score: 0.638)
 - `polo/gemini-2.5-pro-preview-06-05` - Latest Pro model (Score: 0.638)
 - `polo/gemini-2.5-pro-preview-05-06-thinking` - Pro with thinking mode (Score: 0.638)
@@ -159,7 +162,7 @@ Change the main, research and fallback models to <model_name>, <model_name> and 
 In your editor's AI chat pane, say:
 
 ```txt
-Initialize taskmaster-ai in my project
+Initialize taskmaster-api in my project
 ```
 
 #### 5. Make sure you have a PRD (Recommended)

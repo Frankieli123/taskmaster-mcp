@@ -11,14 +11,14 @@ export class ConfigTransformer {
             'anthropic': 'anthropic',
             'google': 'google',
             'polo': 'openai',
-            'poloai': 'openai',
             'aoapi': 'openai',
             'perplexity': 'openai',
             'xai': 'openai',
             'openrouter': 'openai',
             'ollama': 'custom',
-            'whi': 'openai',
-            'foapi': 'openai'
+            '': 'openai',
+            't': 'openai',
+            'whi': 'openai'
         };
 
         // Default endpoints for known providers (扩展支持更多供应商)
@@ -27,14 +27,14 @@ export class ConfigTransformer {
             'anthropic': 'https://api.anthropic.com',
             'google': 'https://generativelanguage.googleapis.com',
             'polo': 'https://api.polo.ai',
-            'poloai': 'https://api.polo.ai',
             'aoapi': 'https://api.aoapi.com',
             'perplexity': 'https://api.perplexity.ai',
             'xai': 'https://api.x.ai',
             'openrouter': 'https://openrouter.ai/api',
             'ollama': 'http://localhost:11434',
-            'whi': 'https://doi9.top',
-            'foapi': 'https://v2.voct.top'
+            '': 'https://api..com',
+            't': 'https://tbai.xin',
+            'whi': 'https://doi9.top'
         };
     }
 
@@ -156,14 +156,14 @@ export class ConfigTransformer {
             'anthropic': 'Anthropic',
             'google': 'Google',
             'polo': 'PoloAI',
-            'poloai': 'PoloAI',
             'aoapi': 'AoApi',
             'perplexity': 'Perplexity',
             'xai': 'xAI',
             'openrouter': 'OpenRouter',
             'ollama': 'Ollama',
-            'whi': 'Whi',
-            'foapi': 'Foapi'
+            '': '',
+            't': 'T',
+            'whi': 'whi'
         };
         return nameMap[providerKey] || providerKey.charAt(0).toUpperCase() + providerKey.slice(1);
     }

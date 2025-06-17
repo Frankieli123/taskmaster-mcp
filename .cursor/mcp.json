@@ -1,19 +1,29 @@
 {
-	"mcpServers": {
-		"task-master-ai": {
-			"command": "node",
-			"args": ["./mcp-server/server.js"],
-			"env": {
-				"ANTHROPIC_API_KEY": "ANTHROPIC_API_KEY_HERE",
-				"PERPLEXITY_API_KEY": "PERPLEXITY_API_KEY_HERE",
-				"OPENAI_API_KEY": "sk-Q8qV5EO7UW2jdc3x5bWKKDvY66smIR0vmA125GMYj00n1qvL",
-				"GOOGLE_API_KEY": "GOOGLE_API_KEY_HERE",
-				"XAI_API_KEY": "XAI_API_KEY_HERE",
-				"OPENROUTER_API_KEY": "OPENROUTER_API_KEY_HERE",
-				"MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
-				"AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
-				"OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE"
-			}
-		}
-	}
+  "mcpServers": {
+    "taskmaster-api": {
+      "command": "node",
+      "args": [
+        "e:\\APP\\claude-task-master-main\\mcp-server\\server.js"
+      ],
+      "cwd": "e:\\APP\\claude-task-master-main",
+      "env": {
+        "ANTHROPIC_API_KEY": "ANTHROPIC_API_KEY_HERE",
+        "PERPLEXITY_API_KEY": "PERPLEXITY_API_KEY_HERE",
+        "OPENAI_API_KEY": "sk-Q8qV5EO7UW2jdc3x5bWKKDvY66smIf",
+        "GOOGLE_API_KEY": "GOOGLE_API_KEY_HERE",
+        "XAI_API_KEY": "XAI_API_KEY_HERE",
+        "OPENROUTER_API_KEY": "OPENROUTER_API_KEY_HERE",
+        "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
+        "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
+        "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE",
+        "ANTHROPICAI_API_KEY": "ANTHROPIC_API_KEY_HERE",
+        "GOOGLEAI_API_KEY": "GOOGLE_API_KEY_HERE",
+        "PERPLEXITYAI_API_KEY": "PERPLEXITY_API_KEY_HERE",
+        "OLLAMAAI_API_KEY": "OLLAMA_API_KEY_HERE",
+        "OPENROUTERAI_API_KEY": "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",
+        "T_API_KEY": "sk-X8Sq25libdvoDgQT1ksWZEYrclZSVNLDHNdKmFxUPTYEAmJf",
+        "WHI_API_KEY": "sk-3AEY28Or8ORvWbwgYJo7DXftapQPk7GyMI7pDaQyi4XOpKyP"
+      }
+    }
+  }
 }

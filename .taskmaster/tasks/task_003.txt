@@ -1,18 +1,16 @@
 # Task ID: 3
-# Title: Implement Basic Task Operations
+# Title: 服务商管理模块开发
 # Status: done
-# Dependencies: 1
+# Dependencies: 2
 # Priority: high
-# Description: Create core functionality for managing tasks including listing, creating, updating, and deleting tasks.
+# Description: 实现服务商的添加、编辑和删除功能，包括UI表单和与配置文件的交互逻辑。
 # Details:
-Implement the following task operations:
-- List tasks with filtering options
-- Create new tasks with required fields
-- Update existing task properties
-- Delete tasks
-- Change task status (pending/done/deferred)
-- Handle dependencies between tasks
-- Manage task priorities
+在 "服务商管理" 标签页中实现 CRUD 功能。
+1.  **UI设计**: 左侧显示服务商列表，右侧为表单区域，用于添加或编辑服务商信息（如名称, API Key, Base URL）。
+2.  **添加功能**: "添加服务商" 按钮清空表单。用户填写完毕后，点击 "保存" 将新服务商数据存入 `ConfigManager`。
+3.  **编辑功能**: 点击列表中的服务商，其信息将填充到右侧表单中以供编辑。
+4.  **删除功能**: 每个服务商旁提供 "删除" 按钮，点击后弹出确认对话框，确认后从配置中移除该服务商。
+5.  **数据绑定**: 服务商列表应与 `ConfigManager` 中的数据动态绑定，任何更改都应实时反映在UI上。
 
 # Test Strategy:
-Test each operation with valid and invalid inputs. Verify that dependencies are properly tracked and that status changes are reflected correctly in the tasks.json file.
+添加一个新的服务商，验证其是否出现在列表中并已保存到配置文件。选择一个服务商进行编辑，修改其API Key，保存并验证文件是否更新。删除一个服务商，验证其从列表和配置文件中被移除。

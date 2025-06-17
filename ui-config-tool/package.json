@@ -1,9 +1,17 @@
 {
-  "name": "taskmaster-ui-config-tool",
+  "name": "taskmaster-tool",
   "version": "1.0.0",
-  "description": "UI Configuration Tool for Task Master AI - Manage API endpoints and models",
+  "description": "UI Configuration Tool for Task Master AI - Manage API providers and models",
   "type": "module",
   "main": "src/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Frankieli123/taskmaster-tool.git"
+  },
+  "homepage": "https://github.com/Frankieli123/taskmaster-tool",
+  "bugs": {
+    "url": "https://github.com/Frankieli123/taskmaster-tool/issues"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -32,6 +40,7 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@vitest/coverage-v8": "^3.2.3",
     "@vitest/ui": "^3.2.3",
     "eslint": "^8.57.1",
     "eslint-config-airbnb-base": "^15.0.0",

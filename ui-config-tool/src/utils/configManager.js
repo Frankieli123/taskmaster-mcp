@@ -17,56 +17,40 @@ export class ConfigManager {
     }
 
     async loadConfiguration() {
-        try {
-            // Initialize project path first
-            await this.initializeProjectPath();
+        // Initialize project path first
+        await this.initializeProjectPath();
 
-            const stored = localStorage.getItem(this.storageKey);
-            if (stored) {
-                const config = JSON.parse(stored);
-                this.providers = config.providers || [];
-                this.models = config.models || [];
-            }
+        const stored = localStorage.getItem(this.storageKey);
 
-            // Load default configurations if empty
-            if (this.providers.length === 0) {
-                await this.loadDefaultProviders();
-            }
-
-            return true;
-        } catch (error) {
-            console.error('Failed to load configuration:', error);
-            throw error;
+        if (stored) {
+            const config = JSON.parse(stored);
+            this.providers = config.providers || [];
+            this.models = config.models || [];
         }
+
+        // 不再加载默认配置，保持空状态直到用户导入真实配置
+
+        return true;
     }
 
     async saveConfiguration() {
-        try {
-            const config = {
-                providers: this.providers,
-                models: this.models,
-                lastUpdated: new Date().toISOString()
-            };
-            
-            localStorage.setItem(this.storageKey, JSON.stringify(config));
-            return true;
-        } catch (error) {
-            console.error('Failed to save configuration:', error);
-            throw error;
-        }
+        const config = {
+            providers: this.providers,
+            models: this.models,
+            lastUpdated: new Date().toISOString()
+        };
+
+        localStorage.setItem(this.storageKey, JSON.stringify(config));
+
+        return true;
     }
 
     async resetConfiguration() {
-        try {
-            this.providers = [];
-            this.models = [];
-            localStorage.removeItem(this.storageKey);
-            await this.loadDefaultProviders();
-            return true;
-        } catch (error) {
-            console.error('Failed to reset configuration:', error);
-            throw error;
-        }
+        this.providers = [];
+        this.models = [];
+        localStorage.removeItem(this.storageKey);
+        await this.saveConfiguration();
+        return true;
     }
 
     async loadDefaultProviders() {
@@ -88,6 +72,14 @@ export class ConfigManager {
                 isValid: false
             },
             {
+                id: 'provider_poloai_default',
+                name: 'PoloAI',
+                endpoint: 'https://api.polo.ai',
+                type: 'openai',
+                apiKey: '',
+                isValid: false
+            },
+            {
                 id: 'provider_foapi_default',
                 name: 'FoApi',
                 endpoint: 'https://v2.voct.top',
@@ -103,15 +95,15 @@ export class ConfigManager {
 
     // Provider Management
     async getProviders() {
-        return [...this.providers];
+        // 为每个provider添加其对应的models数组，以便UI能正确显示模型数量
+        return this.providers.map(provider => ({
+            ...provider,
+            models: this.getModelsByProvider(provider.id)
+        }));
     }
 
     async addProvider(providerData) {
-        const validationResult = this.validation.validateProvider(providerData);
-        if (!validationResult.isValid) {
-            throw new Error(`无效的服务商数据: ${validationResult.errors.join(', ')}`);
-        }
-
+        // 不进行严格验证，直接添加供应商
         // Check for duplicate names
         if (this.providers.some(p => p.name === providerData.name && p.id !== providerData.id)) {
             throw new Error('服务商名称已存在');
@@ -123,11 +115,7 @@ export class ConfigManager {
     }
 
     async updateProvider(providerData) {
-        const validationResult = this.validation.validateProvider(providerData);
-        if (!validationResult.isValid) {
-            throw new Error(`无效的服务商数据: ${validationResult.errors.join(', ')}`);
-        }
-
+        // 不进行严格验证，直接更新供应商
         const index = this.providers.findIndex(p => p.id === providerData.id);
         if (index === -1) {
             throw new Error('服务商未找到');
@@ -183,7 +171,7 @@ export class ConfigManager {
 
             return true;
         } catch (error) {
-            console.error('Provider test failed:', error);
+            // Provider test failed
             return false;
         }
     }
@@ -194,9 +182,9 @@ export class ConfigManager {
     }
 
     async addModel(modelData) {
-        const validationResult = this.validation.validateModel(modelData);
-        if (!validationResult.isValid) {
-            throw new Error(`无效的模型数据: ${validationResult.errors.join(', ')}`);
+        // 不进行严格验证，只检查基本必填字段
+        if (!modelData.name || !modelData.name.trim()) {
+            throw new Error('模型名称不能为空');
         }
 
         // Check if provider exists
@@ -204,13 +192,12 @@ export class ConfigManager {
             throw new Error('服务商未找到');
         }
 
-        // Check for duplicate model IDs within the same provider
+        // Check for duplicate model IDs globally (跨供应商检查)
         if (this.models.some(m =>
             m.modelId === modelData.modelId &&
-            m.providerId === modelData.providerId &&
             m.id !== modelData.id
         )) {
-            throw new Error('此服务商已存在相同的模型ID');
+            throw new Error('系统中已存在相同的模型ID，请使用不同的模型标识');
         }
 
         this.models.push(modelData);
@@ -219,9 +206,9 @@ export class ConfigManager {
     }
 
     async updateModel(modelData) {
-        const validationResult = this.validation.validateModel(modelData);
-        if (!validationResult.isValid) {
-            throw new Error(`无效的模型数据: ${validationResult.errors.join(', ')}`);
+        // 不进行严格验证，只检查基本必填字段
+        if (!modelData.name || !modelData.name.trim()) {
+            throw new Error('模型名称不能为空');
         }
 
         const index = this.models.findIndex(m => m.id === modelData.id);
@@ -234,13 +221,12 @@ export class ConfigManager {
             throw new Error('服务商未找到');
         }
 
-        // Check for duplicate model IDs within the same provider (excluding current model)
+        // Check for duplicate model IDs globally (excluding current model)
         if (this.models.some(m =>
             m.modelId === modelData.modelId &&
-            m.providerId === modelData.providerId &&
             m.id !== modelData.id
         )) {
-            throw new Error('此服务商已存在相同的模型ID');
+            throw new Error('系统中已存在相同的模型ID，请使用不同的模型标识');
         }
 
         this.models[index] = modelData;
@@ -278,40 +264,20 @@ export class ConfigManager {
             
             return true;
         } catch (error) {
-            console.error('Model test failed:', error);
+            // Model test failed
             return false;
         }
     }
 
     // Import/Export
     async importConfiguration(providers, models) {
-        try {
-            // Validate all providers
-            for (const provider of providers) {
-                const validationResult = this.validation.validateProvider(provider);
-                if (!validationResult.isValid) {
-                    throw new Error(`无效的服务商 "${provider.name}": ${validationResult.errors.join(', ')}`);
-                }
-            }
+        // 直接导入配置，不进行验证
+        // 加载到什么字段就在前端显示什么字段
+        this.providers = providers || [];
+        this.models = models || [];
 
-            // Validate all models
-            for (const model of models) {
-                const validationResult = this.validation.validateModel(model);
-                if (!validationResult.isValid) {
-                    throw new Error(`无效的模型 "${model.name}": ${validationResult.errors.join(', ')}`);
-                }
-            }
-
-            // Replace current configuration
-            this.providers = providers;
-            this.models = models;
-            
-            await this.saveConfiguration();
-            return true;
-        } catch (error) {
-            console.error('Failed to import configuration:', error);
-            throw error;
-        }
+        await this.saveConfiguration();
+        return true;
     }
 
     async exportConfiguration() {
@@ -341,7 +307,7 @@ export class ConfigManager {
     }
 
     generateId(prefix = 'item') {
-        return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
     // TaskMaster Project Path Management
@@ -360,7 +326,7 @@ export class ConfigManager {
             }
             return null;
         } catch (error) {
-            console.error('Failed to load saved project path:', error);
+            // Failed to load saved project path
             return null;
         }
     }
@@ -371,26 +337,21 @@ export class ConfigManager {
      * @returns {Promise<boolean>} Success status
      */
     async saveProjectPath(projectPath) {
-        try {
-            if (!projectPath) {
-                localStorage.removeItem(this.projectPathKey);
-                this.taskmasterProjectPath = null;
-                this.isValidProject = false;
-                return true;
-            }
+        if (!projectPath) {
+            localStorage.removeItem(this.projectPathKey);
+            this.taskmasterProjectPath = null;
+            this.isValidProject = false;
+            return true;
+        }
 
-            const isValid = await this.validateProjectPath(projectPath);
-            if (isValid) {
-                localStorage.setItem(this.projectPathKey, projectPath);
-                this.taskmasterProjectPath = projectPath;
-                this.isValidProject = true;
-                return true;
-            } else {
-                throw new Error('无效的 TaskMaster 项目路径');
-            }
-        } catch (error) {
-            console.error('Failed to save project path:', error);
-            throw error;
+        const isValid = await this.validateProjectPath(projectPath);
+        if (isValid) {
+            localStorage.setItem(this.projectPathKey, projectPath);
+            this.taskmasterProjectPath = projectPath;
+            this.isValidProject = true;
+            return true;
+        } else {
+            throw new Error('无效的 TaskMaster 项目路径');
         }
     }
 
@@ -417,16 +378,16 @@ export class ConfigManager {
             }
 
             // Check if it contains typical TaskMaster project indicators in the path name
-            const pathLower = normalizedPath.toLowerCase();
-            const hasTaskMasterIndicator = pathLower.includes('task-master') ||
-                                         pathLower.includes('taskmaster') ||
-                                         pathLower.includes('claude-task-master');
+            // const pathLower = normalizedPath.toLowerCase(); // 暂时不使用
+            // const hasTaskMasterIndicator = pathLower.includes('task-master') ||
+            //                              pathLower.includes('taskmaster') ||
+            //                              pathLower.includes('claude-task-master');
 
             // For now, we'll accept any non-empty path and let the user verify
             // by successfully importing/exporting files
             return true;
         } catch (error) {
-            console.error('Error validating project path:', error);
+            // Error validating project path
             return false;
         }
     }
@@ -475,16 +436,16 @@ export class ConfigManager {
         try {
             const savedPath = await this.loadSavedProjectPath();
             if (savedPath && this.isValidProject) {
-                console.log('TaskMaster project loaded:', savedPath);
+                // TaskMaster project loaded
                 return true;
             } else if (savedPath) {
-                console.warn('Saved project path is no longer valid:', savedPath);
+                // Saved project path is no longer valid
                 // Clear invalid path
                 await this.saveProjectPath(null);
             }
             return false;
         } catch (error) {
-            console.error('Failed to initialize project path:', error);
+            // Failed to initialize project path
             return false;
         }
     }

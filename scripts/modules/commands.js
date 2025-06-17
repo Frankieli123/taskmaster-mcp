@@ -264,7 +264,7 @@ async function runInteractiveSetup(projectRoot) {
 		const roleChoices = Object.entries(modelsByProvider)
 			.map(([provider, models]) => {
 				const providerModels = models
-					.filter((m) => m.allowed_roles.includes(role))
+					.filter((m) => m.allowed_roles && m.allowed_roles.includes(role))
 					.map((m) => ({
 						name: `${provider} / ${m.id} ${
 							m.cost_per_1m_tokens

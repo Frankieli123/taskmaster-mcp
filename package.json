@@ -1,15 +1,13 @@
 {
-	"name": "task-master-ai-polo",
+	"name": "taskmaster-api",
 	"version": "1.0.7",
 	"description": "A task management system for ambitious AI-driven development with PoloAI support. Enhanced version with Gemini models integration.",
 	"main": "index.js",
 	"type": "module",
 	"bin": {
+		"taskmaster-api": "bin/task-master.js",
 		"task-master": "bin/task-master.js",
-		"task-master-ai": "mcp-server/server.js",
-		"task-master-ai-polo": "bin/task-master.js",
-		"task-master-mcp": "mcp-server/server.js",
-		"task-master-polo": "mcp-server/server.js"
+		"task-master-mcp": "mcp-server/server.js"
 	},
 	"scripts": {
 		"test": "node --experimental-vm-modules node_modules/.bin/jest",
@@ -117,6 +115,7 @@
 		"prettier": "^3.5.3",
 		"react": "^18.3.1",
 		"supertest": "^7.1.0",
-		"tsx": "^4.16.2"
+		"tsx": "^4.16.2",
+		"vite": "^5.4.19"
 	}
 }

@@ -13,4 +13,5 @@ export { OllamaAIProvider } from './ollama.js';
 export { BedrockAIProvider } from './bedrock.js';
 export { AzureProvider } from './azure.js';
 export { VertexAIProvider } from './google-vertex.js';
-export { PoloAIProvider } from './polo.js';
+export { TProvider } from './t.js';
+export { WhiProvider } from './whi.js';

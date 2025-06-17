@@ -1,16 +1,26 @@
 # Task ID: 2
-# Title: Develop Command Line Interface Foundation
+# Title: 核心配置管理功能实现
 # Status: done
 # Dependencies: 1
 # Priority: high
-# Description: Create the basic CLI structure using Commander.js with command parsing and help documentation.
+# Description: 开发配置文件的读取、写入、导入、导出和重置功能，为整个应用提供数据持久化基础。
 # Details:
-Implement the CLI foundation including:
-- Set up Commander.js for command parsing
-- Create help documentation for all commands
-- Implement colorized console output for better readability
-- Add logging system with configurable levels
-- Handle global options (--help, --version, --file, --quiet, --debug, --json)
+实现一个 `ConfigManager` 类来处理所有与 `config.json` 相关的操作。
+1.  **路径管理**: 实现一个功能，允许用户通过文件对话框选择 TaskMaster 项目路径，并将此路径保存到应用本地存储中。
+2.  **自动加载**: 应用启动时，自动检测并加载项目路径下的 `config.json` 文件。
+3.  **导入/导出**: 添加 "导入配置" 和 "导出配置" 按钮，允许用户选择 JSON 文件进行导入或将当前配置保存到指定位置。
+4.  **重置功能**: 实现 "重置为默认配置" 功能，恢复到预设的初始配置状态。
+5.  **保存功能**: 提供一个 `saveConfig(data)` 方法，供其他模块调用以保存更改。
+
+**伪代码:**
+```javascript
+class ConfigManager {
+  constructor(projectPath) { this.configFile = path.join(projectPath, 'config.json'); }
+  load() { return JSON.parse(fs.readFileSync(this.configFile)); }
+  save(data) { fs.writeFileSync(this.configFile, JSON.stringify(data, null, 2)); }
+  reset() { /* 恢复默认配置 */ }
+}
+```
 
 # Test Strategy:
-Test each command with various parameters to ensure proper parsing. Verify help documentation is comprehensive and accurate. Test logging at different verbosity levels.
+通过UI选择一个项目路径，验证路径是否被保存。手动修改配置文件后重启应用，验证数据是否自动加载。测试导入、导出和重置功能，并检查对应的 `config.json` 文件内容是否正确更新。

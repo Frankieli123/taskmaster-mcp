@@ -1,55 +1,15 @@
 # Task ID: 5
-# Title: Integrate Anthropic Claude API
+# Title: 模型配置模块开发
 # Status: done
-# Dependencies: 1
-# Priority: high
-# Description: Set up the integration with Claude API for AI-powered task generation and expansion.
+# Dependencies: 4
+# Priority: medium
+# Description: 实现模型的添加、编辑和删除功能，允许用户管理与特定服务商关联的模型及其参数。
 # Details:
-Implement Claude API integration including:
-- API authentication using environment variables
-- Create prompt templates for various operations
-- Implement response handling and parsing
-- Add error management with retries and exponential backoff
-- Implement token usage tracking
-- Create configurable model parameters
+在 "模型配置" 标签页中实现模型管理功能。
+1.  **UI设计**: 使用下拉菜单让用户选择一个服务商。下方是一个列表，显示该服务商下已配置的模型。
+2.  **添加模型**: 提供 "添加模型" 功能，弹出一个表单，让用户从该服务商已加载的模型ID列表中选择一个模型，并配置其特定参数（如别名、温度、top_p等）。
+3.  **编辑与删除**: 列表中每一项都应有关联的 "编辑" 和 "删除" 按钮，功能类似于服务商管理。
+4.  **数据结构**: 模型数据应作为服务商配置下的一个子对象数组进行存储。
 
 # Test Strategy:
-Test API connectivity with sample prompts. Verify authentication works correctly with different API keys. Test error handling by simulating API failures.
-
-# Subtasks:
-## 1. Configure API Authentication System [done]
-### Dependencies: None
-### Description: Create a dedicated module for Anthropic API authentication. Implement a secure system to load API keys from environment variables using dotenv. Include validation to ensure API keys are properly formatted and present. Create a configuration object that will store all Claude-related settings including API keys, base URLs, and default parameters.
-### Details:
-
-
-## 2. Develop Prompt Template System [done]
-### Dependencies: 5.1
-### Description: Create a flexible prompt template system for Claude API interactions. Implement a PromptTemplate class that can handle variable substitution, system and user messages, and proper formatting according to Claude's requirements. Include templates for different operations (task generation, task expansion, etc.) with appropriate instructions and constraints for each use case.
-### Details:
-
-
-## 3. Implement Response Handling and Parsing [done]
-### Dependencies: 5.1, 5.2
-### Description: Create a response handling system that processes Claude API responses. Implement JSON parsing for structured outputs, error detection in responses, and extraction of relevant information. Build utility functions to transform Claude's responses into the application's data structures. Include validation to ensure responses meet expected formats.
-### Details:
-
-
-## 4. Build Error Management with Retry Logic [done]
-### Dependencies: 5.1, 5.3
-### Description: Implement a robust error handling system for Claude API interactions. Create middleware that catches API errors, network issues, and timeout problems. Implement exponential backoff retry logic that increases wait time between retries. Add configurable retry limits and timeout settings. Include detailed logging for troubleshooting API issues.
-### Details:
-
-
-## 5. Implement Token Usage Tracking [done]
-### Dependencies: 5.1, 5.3
-### Description: Create a token tracking system to monitor Claude API usage. Implement functions to count tokens in prompts and responses. Build a logging system that records token usage per operation. Add reporting capabilities to show token usage trends and costs. Implement configurable limits to prevent unexpected API costs.
-### Details:
-
-
-## 6. Create Model Parameter Configuration System [done]
-### Dependencies: 5.1, 5.5
-### Description: Implement a flexible system for configuring Claude model parameters. Create a configuration module that manages model selection, temperature, top_p, max_tokens, and other parameters. Build functions to customize parameters based on operation type. Add validation to ensure parameters are within acceptable ranges. Include preset configurations for different use cases (creative, precise, etc.).
-### Details:
-
-
+选择一个服务商，添加一个新模型配置，保存后验证数据是否正确写入配置文件。编辑该模型的参数（如温度），保存并验证更新。删除该模型，验证其是否从配置文件中移除。

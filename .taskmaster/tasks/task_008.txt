@@ -1,48 +1,14 @@
 # Task ID: 8
-# Title: Develop Implementation Drift Handling
-# Status: done
-# Dependencies: 3, 5, 7
+# Title: 最终功能审查与打包
+# Status: pending
+# Dependencies: 6, 7
 # Priority: medium
-# Description: Create system to handle changes in implementation that affect future tasks.
+# Description: 进行全面的端到端功能测试，修复发现的缺陷，并准备应用的可分发版本。
 # Details:
-Implement drift handling including:
-- Add capability to update future tasks based on completed work
-- Implement task rewriting based on new context
-- Create dependency chain updates when tasks change
-- Preserve completed work while updating future tasks
-- Add command to analyze and suggest updates to future tasks
+1.  **功能演练**: 按照PRD中的功能检查清单，系统地测试每一个功能点，包括所有CRUD操作、API集成、配置管理和UI交互。
+2.  **错误处理测试**: 模拟各种异常情况，如网络中断、文件只读、API返回非预期格式等，确保程序有合理的容错和恢复机制。
+3.  **用户体验审查**: 检查应用的整体流程是否顺畅，反馈是否清晰，有无体验上的痛点。
+4.  **打包与分发**: 使用 `electron-builder` 或类似工具，将应用打包成适用于不同操作系统（Windows, macOS, Linux）的安装程序。
 
 # Test Strategy:
-Simulate implementation changes and test the system's ability to update future tasks appropriately. Verify that completed tasks remain unchanged while pending tasks are updated correctly.
-
-# Subtasks:
-## 1. Create Task Update Mechanism Based on Completed Work [done]
-### Dependencies: None
-### Description: Implement a system that can identify pending tasks affected by recently completed tasks and update them accordingly. This requires analyzing the dependency chain and determining which future tasks need modification based on implementation decisions made in completed tasks. Create a function that takes a completed task ID as input, identifies dependent tasks, and prepares them for potential updates.
-### Details:
-
-
-## 2. Implement AI-Powered Task Rewriting [done]
-### Dependencies: None
-### Description: Develop functionality to use Claude API to rewrite pending tasks based on new implementation context. This involves creating specialized prompts that include the original task description, the implementation details of completed dependency tasks, and instructions to update the pending task to align with the actual implementation. The system should generate updated task descriptions, details, and test strategies.
-### Details:
-
-
-## 3. Build Dependency Chain Update System [done]
-### Dependencies: None
-### Description: Create a system to update task dependencies when task implementations change. This includes adding new dependencies that weren't initially identified, removing dependencies that are no longer relevant, and reordering dependencies based on implementation decisions. The system should maintain the integrity of the dependency graph while reflecting the actual implementation requirements.
-### Details:
-
-
-## 4. Implement Completed Work Preservation [done]
-### Dependencies: 8.3
-### Description: Develop a mechanism to ensure that updates to future tasks don't affect completed work. This includes creating a versioning system for tasks, tracking task history, and implementing safeguards to prevent modifications to completed tasks. The system should maintain a record of task changes while ensuring that completed work remains stable.
-### Details:
-
-
-## 5. Create Update Analysis and Suggestion Command [done]
-### Dependencies: 8.3
-### Description: Implement a CLI command that analyzes the current state of tasks, identifies potential drift between completed and pending tasks, and suggests updates. This command should provide a comprehensive report of potential inconsistencies and offer recommendations for task updates without automatically applying them. It should include options to apply all suggested changes, select specific changes to apply, or ignore suggestions.
-### Details:
-
-
+执行完整的测试用例，确保所有功能符合预期，无严重bug。打包应用并在一个干净的环境中（如虚拟机）成功安装和运行。最终生成的应用应能让用户顺畅完成从零开始配置服务商和模型，并导出可用配置文件的全过程。

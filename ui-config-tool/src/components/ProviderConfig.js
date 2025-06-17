@@ -4,12 +4,18 @@
  */
 
 import { ProviderValidator } from '../utils/ProviderValidator.js';
+import { ErrorHandler } from '../utils/ErrorHandler.js';
+import { Logger } from '../utils/Logger.js';
+import { UINotification } from './UINotification.js';
+import { TaskMasterFileManager } from '../utils/TaskMasterFileManager.js';
 
 export class ProviderConfig {
-    constructor(configManager) {
+    constructor(configManager, saveConfig) {
         this.configManager = configManager;
+        this.saveConfig = saveConfig;
         this.providers = [];
         this.validator = new ProviderValidator();
+        this.fileManager = new TaskMasterFileManager(configManager, saveConfig);
     }
 
     initialize() {
@@ -25,9 +31,6 @@ export class ProviderConfig {
             } else if (e.target.matches('.delete-provider-btn')) {
                 const providerId = e.target.dataset.providerId;
                 this.deleteProvider(providerId);
-            } else if (e.target.matches('.test-provider-btn')) {
-                const providerId = e.target.dataset.providerId;
-                this.testProvider(providerId);
             } else if (e.target.matches('.load-models-btn')) {
                 const providerId = e.target.dataset.providerId;
                 this.loadProviderModels(providerId);
@@ -40,13 +43,23 @@ export class ProviderConfig {
             this.providers = await this.configManager.getProviders();
             this.renderProviders();
         } catch (error) {
-            console.error('Failed to load providers:', error);
+            // 使用 ErrorHandler 处理错误，并显示用户友好的错误信息
+            ErrorHandler.handle(error, {
+                component: 'ProviderConfig',
+                method: 'loadProviders',
+                action: 'load_providers'
+            });
+
+            // 显示错误状态给用户
+            if (window.app && window.app.updateStatus) {
+                window.app.updateStatus('加载供应商失败，请检查配置', 'error');
+            }
         }
     }
 
     renderProviders() {
         const container = document.getElementById('providers-list');
-        
+
         if (this.providers.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -66,9 +79,12 @@ export class ProviderConfig {
     }
 
     renderProviderCard(provider) {
-        const statusClass = provider.isValid ? 'status-success' : 'status-error';
-        const statusIcon = provider.isValid ? '✅' : '❌';
-        const statusText = provider.isValid ? '已连接' : '配置错误';
+        const statusClass = provider.isValid === true ? 'status-valid' :
+                           provider.isValid === false ? 'status-invalid' : 'status-unknown';
+        const statusIcon = provider.isValid === true ? '✅' :
+                          provider.isValid === false ? '❌' : '❓';
+        const statusText = provider.isValid === true ? '已连接' :
+                          provider.isValid === false ? '配置错误' : '未测试';
 
         return `
             <div class="card provider-card" data-provider-id="${provider.id}">
@@ -79,24 +95,6 @@ export class ProviderConfig {
                             <span class="status-icon">${statusIcon}</span>
                             <span class="status-text">${statusText}</span>
                         </div>
-                    </div>
-                    <div class="provider-actions">
-                        <button class="btn btn-sm btn-secondary test-provider-btn" data-provider-id="${provider.id}">
-                            <span class="btn-icon">🔍</span>
-                            测试连接
-                        </button>
-                        <button class="btn btn-sm btn-success load-models-btn" data-provider-id="${provider.id}">
-                            <span class="btn-icon">📥</span>
-                            加载模型
-                        </button>
-                        <button class="btn btn-sm btn-primary edit-provider-btn" data-provider-id="${provider.id}">
-                            <span class="btn-icon">✏️</span>
-                            编辑
-                        </button>
-                        <button class="btn btn-sm btn-danger delete-provider-btn" data-provider-id="${provider.id}">
-                            <span class="btn-icon">🗑️</span>
-                            删除
-                        </button>
                     </div>
                 </div>
                 <div class="provider-details">
@@ -112,6 +110,20 @@ export class ProviderConfig {
                         <label>模型数量:</label>
                         <span class="detail-value">${provider.models?.length || 0} 个已配置</span>
                     </div>
+                </div>
+                <div class="provider-actions">
+                    <button class="btn btn-sm btn-success load-models-btn" data-provider-id="${provider.id}">
+                        <span class="btn-icon">📥</span>
+                        加载模型
+                    </button>
+                    <button class="btn btn-sm btn-primary edit-provider-btn" data-provider-id="${provider.id}">
+                        <span class="btn-icon">✏️</span>
+                        编辑
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-provider-btn" data-provider-id="${provider.id}">
+                        <span class="btn-icon">🗑️</span>
+                        删除
+                    </button>
                 </div>
             </div>
         `;
@@ -131,29 +143,34 @@ export class ProviderConfig {
     showProviderModal(provider = null) {
         const isEdit = !!provider;
         const modalTitle = isEdit ? '编辑服务商' : '添加新服务商';
-        
+
         const modalHtml = `
             <div class="modal">
                 <div class="modal-header">
                     <h2>${modalTitle}</h2>
-                    <button class="modal-close-btn" onclick="this.closest('.modal-overlay').classList.add('hidden')">×</button>
+                    <button class="modal-close-btn" data-action="close-modal">×</button>
                 </div>
                 <form class="modal-body" id="provider-form">
                     <div class="form-group">
                         <label for="provider-name">服务商名称</label>
-                        <input type="text" id="provider-name" name="name" required
+                        <input type="text" id="provider-name" name="name"
                                value="${provider?.name || ''}"
                                placeholder="例如：FoApi、自定义 OpenAI">
                     </div>
 
                     <div class="form-group">
                         <label for="provider-endpoint">API 端点</label>
-                        <input type="url" id="provider-endpoint" name="endpoint" required
-                               value="${provider?.endpoint || ''}"
-                               placeholder="https://api.example.com">
+                        <div class="input-with-button">
+                            <input type="text" id="provider-endpoint" name="endpoint"
+                                   value="${provider?.endpoint || ''}"
+                                   placeholder="https://api.example.com">
+                            <button type="button" id="test-endpoint-btn" class="btn btn-secondary btn-sm">
+                                <span class="btn-icon">🔍</span>
+                                测试连接
+                            </button>
+                        </div>
                         <small class="form-help">API 的基础 URL（不包含 /v1 后缀）</small>
-                        <div id="endpoint-validation" class="validation-message"></div>
-                        <div id="provider-suggestions" class="provider-suggestions"></div>
+                        <div id="endpoint-test-result" class="test-result"></div>
                     </div>
 
                     <div class="form-group">
@@ -162,7 +179,6 @@ export class ProviderConfig {
                                value="${provider?.apiKey || ''}"
                                placeholder="输入您的 API 密钥">
                         <small class="form-help">您的 API 密钥将被安全存储</small>
-                        <div id="apikey-validation" class="validation-message"></div>
                     </div>
 
                     <div class="form-group">
@@ -171,12 +187,14 @@ export class ProviderConfig {
                             <option value="openai" ${provider?.type === 'openai' ? 'selected' : ''}>OpenAI 兼容</option>
                             <option value="anthropic" ${provider?.type === 'anthropic' ? 'selected' : ''}>Anthropic</option>
                             <option value="google" ${provider?.type === 'google' ? 'selected' : ''}>Google</option>
+                            <option value="poloai" ${provider?.type === 'poloai' ? 'selected' : ''}>PoloAI</option>
+                            <option value="foapi" ${provider?.type === 'foapi' ? 'selected' : ''}>FoApi</option>
                             <option value="custom" ${provider?.type === 'custom' ? 'selected' : ''}>自定义</option>
                         </select>
                     </div>
-                    
+
                     <div class="modal-actions">
-                        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').classList.add('hidden')">
+                        <button type="button" class="btn btn-secondary" data-action="close-modal">
                             取消
                         </button>
                         <button type="submit" class="btn btn-primary">
@@ -189,15 +207,20 @@ export class ProviderConfig {
         `;
 
         this.showModal(modalHtml);
-        
-        // Bind form submission
-        document.getElementById('provider-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleProviderSubmit(e.target, provider);
-        });
 
-        // Bind real-time validation
-        this.bindFormValidation();
+        // Bind form submission
+        const form = document.getElementById('provider-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleProviderSubmit(e.target, provider);
+            });
+        }
+
+        // 不需要手动调用 bindModalCloseEvents，因为 showModal 中已经自动调用了
+
+        // 绑定测试连接按钮事件
+        this.bindTestEndpointButton();
     }
 
     async handleProviderSubmit(form, existingProvider) {
@@ -208,18 +231,11 @@ export class ProviderConfig {
             endpoint: formData.get('endpoint').trim(),
             apiKey: formData.get('apiKey').trim(),
             type: formData.get('type'),
-            isValid: false // Will be validated later
+            isValid: true // 默认设置为有效，用户可以通过"加载模型"来验证
         };
 
         try {
-            // Validate provider configuration
-            const validation = this.validator.validateProvider(providerData);
-            if (!validation.isValid) {
-                this.showValidationErrors(validation.errors);
-                return;
-            }
-
-            // Check for duplicate names (excluding current provider)
+            // 只检查重复名称，不进行任何格式验证
             const existingProviders = await this.configManager.getProviders();
             const duplicateName = existingProviders.find(p =>
                 p.name.toLowerCase() === providerData.name.toLowerCase() &&
@@ -244,102 +260,458 @@ export class ProviderConfig {
                     await this.configManager.addProvider(providerData);
                 }
 
-                // Test the provider connection
-                const testResult = await this.validator.testProviderConnection(providerData);
-                providerData.isValid = testResult.isValid;
+                // 确保供应商状态为有效（已在providerData中设置）
+                Logger.info(`✅ 供应商 ${providerData.name} 保存成功，状态: ${providerData.isValid ? '有效' : '无效'}`);
 
-                // Update provider with test result
-                await this.configManager.updateProvider(providerData);
+                // 如果有有效的TaskMaster项目路径，同步保存到TaskMaster项目
+                if (this.configManager.isProjectValid()) {
+                    try {
+                        Logger.info(`🚀 开始TaskMaster项目同步流程，供应商: ${providerData.name}`);
+                        Logger.info(`📋 供应商数据:`, {
+                            name: providerData.name,
+                            endpoint: providerData.endpoint,
+                            type: providerData.type,
+                            hasApiKey: !!(providerData.apiKey && providerData.apiKey.trim()),
+                            apiKeyLength: providerData.apiKey ? providerData.apiKey.length : 0
+                        });
 
-                await this.loadProviders();
-                this.hideModal();
+                        if (existingProvider) {
+                            // 更新现有供应商：强制重新生成JS文件以更新配置
+                            Logger.info(`🔧 更新供应商 ${providerData.name} 的JavaScript文件...`);
+                            const result = await this.fileManager.updateProviderFile(
+                                providerData.name,
+                                providerData
+                            );
 
-                // Show success message
-                const message = testResult.isValid ?
-                    '服务商保存并测试成功！' :
-                    '服务商已保存但连接测试失败';
-                const type = testResult.isValid ? 'success' : 'warning';
+                            if (result.updated) {
+                                Logger.info(`✅ 成功更新供应商文件: ${result.filePath}`);
+                            } else {
+                                Logger.warn(`⚠️ 供应商文件更新失败`);
+                            }
+                        } else {
+                            // 新建供应商：创建JS文件
+                            Logger.info(`🔧 为供应商 ${providerData.name} 创建JavaScript文件...`);
+                            const result = await this.fileManager.createProviderFileOnly(
+                                providerData.name,
+                                providerData
+                            );
+
+                            if (result.created) {
+                                Logger.info(`✅ 成功创建供应商文件: ${result.filePath}`);
+                            } else if (result.reason === 'file_exists') {
+                                Logger.info(`ℹ️ 供应商文件已存在，跳过创建`);
+                            }
+                        }
+
+                        // 同步保存单个供应商配置和API密钥到TaskMaster项目
+                        Logger.info(`💾 开始同步保存供应商配置到TaskMaster项目...`);
+                        Logger.info(`🔑 准备更新API密钥，长度: ${providerData.apiKey ? providerData.apiKey.length : 0}`);
+
+                        const syncResult = await this.syncSingleProviderToTaskMaster(providerData);
+
+                        if (syncResult) {
+                            Logger.info(`✅ 供应商配置已成功同步到TaskMaster项目`);
+                        } else {
+                            Logger.error(`❌ 供应商配置同步失败`);
+                        }
+
+                        // 确保文件写入操作完全完成
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        Logger.info(`⏳ 文件写入操作已完成，等待500ms确保同步`);
+
+                    } catch (fileError) {
+                        Logger.error(`❌ TaskMaster项目同步失败:`, {
+                            error: fileError.message,
+                            stack: fileError.stack,
+                            providerName: providerData.name
+                        });
+                        // 重新抛出错误，让用户知道失败了
+                        throw new Error(`TaskMaster项目同步失败: ${fileError.message}`);
+                    }
+                }
+
+                // 显示成功消息（在UI更新之前）
+                const message = '服务商保存成功！';
+                const type = 'success';
 
                 if (window.app && window.app.updateStatus) {
                     window.app.updateStatus(message, type);
                 }
 
-                // Dispatch change event
+                // 等待一小段时间确保用户看到成功消息
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // 重新加载供应商列表
+                Logger.info(`🔄 重新加载供应商列表...`);
+                await this.loadProviders();
+                Logger.info(`✅ 供应商列表重新加载完成`);
+
+                // 关闭模态框
+                this.hideModal();
+
+                // 触发配置变更事件（最后执行）
                 document.dispatchEvent(new CustomEvent('configChanged'));
 
+                Logger.info(`🎉 供应商 ${providerData.name} 保存流程完全完成`);
+
             } finally {
-                // Restore button state
+                // 确保所有异步操作完成后再恢复按钮状态
+                Logger.info(`🔄 恢复按钮状态...`);
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
+                Logger.info(`✅ 按钮状态已恢复`);
             }
 
         } catch (error) {
-            console.error('Failed to save provider:', error);
-            this.showValidationErrors([`保存服务商失败: ${error.message}`]);
+            const errorInfo = ErrorHandler.handle(error, {
+                component: 'ProviderConfig',
+                method: 'saveProvider',
+                action: 'save_provider',
+                providerId: existingProvider?.id || providerData.id
+            });
+            this.showValidationErrors([`保存服务商失败: ${errorInfo.userMessage}`]);
         }
     }
 
     async deleteProvider(providerId) {
-        if (!confirm('确定要删除此服务商吗？此操作无法撤销。')) {
+        const provider = this.providers.find(p => p.id === providerId);
+        if (!provider) {
+            UINotification.error('供应商未找到');
+            return;
+        }
+
+        // 检查是否有TaskMaster项目路径
+        const hasTaskMasterProject = this.configManager.isProjectValid();
+        let confirmMessage = '确定要删除此服务商吗？此操作无法撤销。';
+
+        if (hasTaskMasterProject) {
+            // 检查配置引用
+            try {
+                const configUsage = await this.fileManager.checkProviderUsageInConfig(provider.name);
+                if (configUsage.isUsed) {
+                    confirmMessage += `\n\n⚠️ 警告：该供应商正在被以下配置使用：\n${configUsage.usedIn.join(', ')}\n\n删除后这些配置将失效，建议先更改配置。`;
+                }
+
+                confirmMessage += '\n\n将删除以下内容：';
+                confirmMessage += '\n• UI配置中的供应商和模型';
+                confirmMessage += '\n• TaskMaster项目中的供应商文件';
+                confirmMessage += '\n• supported-models.json中的条目';
+                confirmMessage += '\n• .cursor/mcp.json中的API密钥';
+                confirmMessage += '\n• 相关导入和导出配置';
+            } catch (error) {
+                Logger.warn('检查配置引用失败', { error: error.message });
+            }
+        }
+
+        const confirmed = await UINotification.confirm(confirmMessage, {
+            title: '删除服务商',
+            confirmText: '删除',
+            cancelText: '取消'
+        });
+
+        if (!confirmed) {
             return;
         }
 
         try {
+            Logger.info(`开始删除供应商: ${provider.name}`);
+
+            // 1. 从UI配置中删除供应商
             await this.configManager.deleteProvider(providerId);
+            Logger.info('✅ 已从UI配置中删除供应商');
+
+            // 2. 如果有TaskMaster项目，删除相关文件
+            if (hasTaskMasterProject) {
+                Logger.info('🔧 开始清理TaskMaster项目文件...');
+
+                try {
+                    const deleteResult = await this.fileManager.deleteProviderFromTaskMaster(provider.name);
+
+                    if (deleteResult.success) {
+                        Logger.info('✅ TaskMaster项目文件清理完成');
+
+                        // 显示详细的删除结果
+                        let resultMessage = '供应商删除成功！\n\n';
+
+                        if (deleteResult.deletedFiles.length > 0) {
+                            resultMessage += '已删除文件：\n';
+                            deleteResult.deletedFiles.forEach(file => {
+                                resultMessage += `• ${file}\n`;
+                            });
+                        }
+
+                        if (deleteResult.updatedFiles.length > 0) {
+                            resultMessage += '\n已更新文件：\n';
+                            deleteResult.updatedFiles.forEach(file => {
+                                resultMessage += `• ${file}\n`;
+                            });
+                        }
+
+                        if (deleteResult.warnings.length > 0) {
+                            resultMessage += '\n⚠️ 警告：\n';
+                            deleteResult.warnings.forEach(warning => {
+                                resultMessage += `• ${warning}\n`;
+                            });
+                        }
+
+                        UINotification.success(resultMessage, { duration: 8000 });
+                    } else {
+                        Logger.warn('TaskMaster项目文件清理部分失败');
+
+                        let errorMessage = '供应商从UI配置中删除成功，但TaskMaster项目文件清理遇到问题：\n\n';
+                        deleteResult.errors.forEach(error => {
+                            errorMessage += `• ${error}\n`;
+                        });
+
+                        UINotification.warning(errorMessage, { duration: 10000 });
+                    }
+                } catch (taskMasterError) {
+                    Logger.error('TaskMaster项目文件清理失败', { error: taskMasterError.message });
+                    UINotification.warning(
+                        `供应商从UI配置中删除成功，但TaskMaster项目文件清理失败：\n${taskMasterError.message}\n\n请手动检查并清理相关文件。`,
+                        { duration: 10000 }
+                    );
+                }
+            } else {
+                UINotification.success('供应商删除成功');
+            }
+
+            // 3. 刷新UI
             await this.loadProviders();
-            
+
             // Dispatch change event
             document.dispatchEvent(new CustomEvent('configChanged'));
+
+            Logger.info('Provider deleted successfully', { providerId, providerName: provider.name });
+
         } catch (error) {
-            console.error('Failed to delete provider:', error);
-            alert('删除服务商失败');
+            Logger.error('删除供应商失败', { error: error.message, providerId });
+            ErrorHandler.handle(error, {
+                component: 'ProviderConfig',
+                method: 'deleteProvider',
+                action: 'delete_provider',
+                providerId
+            });
         }
     }
 
-    async testProvider(providerId) {
-        const provider = this.providers.find(p => p.id === providerId);
-        if (!provider) return;
+    /**
+     * 同步单个供应商配置到TaskMaster项目（只更新当前供应商）
+     */
+    async syncSingleProviderToTaskMaster(providerData) {
+        Logger.info(`🔄 syncSingleProviderToTaskMaster 开始执行`);
+        Logger.info(`📋 接收到的供应商数据:`, {
+            name: providerData.name,
+            hasApiKey: !!(providerData.apiKey && providerData.apiKey.trim()),
+            apiKeyPreview: providerData.apiKey ? `${providerData.apiKey.substring(0, 8)}...` : 'null'
+        });
 
         try {
-            // Show testing state
-            const testBtn = document.querySelector(`[data-provider-id="${providerId}"].test-provider-btn`);
-            if (testBtn) {
-                testBtn.innerHTML = '<span class="btn-icon">⏳</span>测试中...';
-                testBtn.disabled = true;
+            // 使用已有的SaveConfig实例
+            const saveConfig = this.saveConfig;
+            if (!saveConfig) {
+                Logger.error(`❌ SaveConfig实例不可用`);
+                throw new Error('SaveConfig实例不可用');
+            }
+            Logger.info(`✅ SaveConfig实例可用`);
+
+            // 获取项目目录句柄
+            let projectDirHandle = saveConfig.directoryHandleCache.get('taskmaster-project');
+            Logger.info(`🔍 检查项目目录句柄:`, {
+                hasCachedHandle: !!projectDirHandle
+            });
+
+            if (!projectDirHandle) {
+                Logger.info(`🔄 尝试从IndexedDB恢复项目目录句柄...`);
+                // 尝试从IndexedDB恢复
+                projectDirHandle = await saveConfig.directoryHandleManager.restoreWithPermission('taskmaster-project', 'readwrite');
+                if (projectDirHandle) {
+                    saveConfig.directoryHandleCache.set('taskmaster-project', projectDirHandle);
+                    Logger.info(`✅ 成功从IndexedDB恢复项目目录句柄`);
+                } else {
+                    Logger.error(`❌ 无法从IndexedDB恢复项目目录句柄`);
+                }
             }
 
-            // Use the enhanced validator for testing
-            const testResult = await this.validator.testProviderConnection(provider);
-            provider.isValid = testResult.isValid;
-
-            // Update provider in storage
-            await this.configManager.updateProvider(provider);
-
-            // Update the UI
-            this.renderProviders();
-
-            // Show detailed status message
-            let message = testResult.message || (testResult.isValid ? '服务商连接成功！' : '服务商连接失败');
-            if (!testResult.isValid && testResult.errors.length > 0) {
-                message += ': ' + testResult.errors.join(', ');
+            if (!projectDirHandle) {
+                Logger.error(`❌ 无法获取TaskMaster项目目录访问权限`);
+                throw new Error('无法获取TaskMaster项目目录访问权限');
             }
 
-            const type = testResult.isValid ? 'success' : 'error';
+            Logger.info(`📁 项目目录句柄已准备就绪`);
 
-            // Show status message
-            if (window.app && window.app.updateStatus) {
-                window.app.updateStatus(message, type);
-            }
+            // 只更新单个供应商的API密钥到.cursor/mcp.json
+            Logger.info(`🔧 开始更新单个供应商的MCP配置...`);
+            await this.updateSingleProviderMCPConfig(projectDirHandle, providerData);
+            Logger.info(`✅ 单个供应商MCP配置更新完成`);
 
+            Logger.info(`🎉 syncSingleProviderToTaskMaster 执行成功`);
+            return true;
         } catch (error) {
-            console.error('Failed to test provider:', error);
-            provider.isValid = false;
-            await this.configManager.updateProvider(provider);
-            this.renderProviders();
+            Logger.error(`❌ syncSingleProviderToTaskMaster 执行失败:`, {
+                error: error.message,
+                stack: error.stack,
+                providerName: providerData?.name
+            });
+            throw error;
+        }
+    }
 
-            if (window.app && window.app.updateStatus) {
-                window.app.updateStatus(`服务商测试失败: ${error.message}`, 'error');
+    /**
+     * 更新单个供应商的MCP配置
+     */
+    async updateSingleProviderMCPConfig(projectDirHandle, providerData) {
+        const mcpConfigPath = '.cursor/mcp.json';
+
+        Logger.info(`🔧 updateSingleProviderMCPConfig 开始执行`);
+        Logger.info(`📁 目标文件路径: ${mcpConfigPath}`);
+        Logger.info(`📋 供应商信息:`, {
+            name: providerData.name,
+            hasApiKey: !!(providerData.apiKey && providerData.apiKey.trim()),
+            apiKeyLength: providerData.apiKey ? providerData.apiKey.length : 0
+        });
+
+        try {
+            // 读取现有的MCP配置
+            let mcpConfig = {};
+            try {
+                const mcpContent = await this.saveConfig.readFileFromDirectory(projectDirHandle, mcpConfigPath);
+                if (mcpContent) {
+                    mcpConfig = JSON.parse(mcpContent);
+                }
+            } catch (error) {
+                // 文件不存在，创建默认结构
+                mcpConfig = {
+                    mcpServers: {
+                        'taskmaster-api': {
+                            command: 'node',
+                            args: ['dist/index.js'],
+                            env: {}
+                        }
+                    }
+                };
             }
+
+            // 确保MCP配置结构存在
+            if (!mcpConfig.mcpServers) {
+                mcpConfig.mcpServers = {};
+            }
+            if (!mcpConfig.mcpServers['taskmaster-api']) {
+                mcpConfig.mcpServers['taskmaster-api'] = {
+                    command: 'node',
+                    args: ['dist/index.js'],
+                    env: {}
+                };
+            }
+            if (!mcpConfig.mcpServers['taskmaster-api'].env) {
+                mcpConfig.mcpServers['taskmaster-api'].env = {};
+            }
+
+            const mcpEnv = mcpConfig.mcpServers['taskmaster-api'].env;
+
+            // 只更新当前供应商的API密钥
+            if (providerData.apiKey && providerData.apiKey.trim() !== '') {
+                const providerKey = providerData.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const envVarName = `${providerKey.toUpperCase()}_API_KEY`;
+
+                mcpEnv[envVarName] = providerData.apiKey;
+                Logger.info(`🔑 更新单个供应商API密钥 ${envVarName}: ${providerData.apiKey.substring(0, 8)}...`);
+            }
+
+            // 保存更新后的MCP配置
+            Logger.info(`📝 开始写入MCP配置文件: ${mcpConfigPath}`);
+            await this.saveConfig.writeFileToDirectory(
+                projectDirHandle,
+                mcpConfigPath,
+                JSON.stringify(mcpConfig, null, 2)
+            );
+            Logger.info(`💾 MCP配置文件写入完成`);
+
+            // 验证写入是否成功
+            try {
+                const verifyContent = await this.saveConfig.readFileFromDirectory(projectDirHandle, mcpConfigPath);
+                const verifyConfig = JSON.parse(verifyContent);
+                const verifyEnv = verifyConfig.mcpServers?.['taskmaster-api']?.env;
+
+                if (providerData.apiKey && providerData.apiKey.trim() !== '') {
+                    const providerKey = providerData.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const envVarName = `${providerKey.toUpperCase()}_API_KEY`;
+
+                    if (verifyEnv && verifyEnv[envVarName] === providerData.apiKey) {
+                        Logger.info(`✅ 验证成功：API密钥 ${envVarName} 已正确保存`);
+                    } else {
+                        Logger.warn(`⚠️ 验证失败：API密钥可能未正确保存`);
+                    }
+                }
+            } catch (verifyError) {
+                Logger.warn(`⚠️ 无法验证MCP配置文件写入结果: ${verifyError.message}`);
+            }
+
+            Logger.info('✅ 单个供应商MCP配置更新成功');
+        } catch (error) {
+            Logger.error('❌ 更新单个供应商MCP配置失败', { error: error.message }, error);
+            throw error;
+        }
+    }
+
+    /**
+     * 同步所有供应商配置到TaskMaster项目（用于批量操作）
+     */
+    async syncProviderToTaskMaster(updatedProviderData) {
+        try {
+            // 获取当前所有供应商，但确保使用最新的供应商数据
+            const allProviders = await this.configManager.getProviders();
+            const allModels = await this.configManager.getModels();
+
+            // 确保使用最新的供应商数据（替换数组中的对应项）
+            if (updatedProviderData) {
+                const index = allProviders.findIndex(p => p.id === updatedProviderData.id);
+                if (index >= 0) {
+                    allProviders[index] = updatedProviderData;
+                } else {
+                    allProviders.push(updatedProviderData);
+                }
+            }
+
+            // 使用已有的SaveConfig实例
+            const saveConfig = this.saveConfig;
+            if (!saveConfig) {
+                throw new Error('SaveConfig实例不可用');
+            }
+
+            // 转换为TaskMaster格式
+            const taskMasterConfig = saveConfig.transformer.uiToTaskMaster(allProviders, allModels);
+
+            // 获取项目目录句柄
+            let projectDirHandle = saveConfig.directoryHandleCache.get('taskmaster-project');
+            if (!projectDirHandle) {
+                // 尝试从IndexedDB恢复
+                projectDirHandle = await saveConfig.directoryHandleManager.restoreWithPermission('taskmaster-project', 'readwrite');
+                if (projectDirHandle) {
+                    saveConfig.directoryHandleCache.set('taskmaster-project', projectDirHandle);
+                }
+            }
+
+            if (!projectDirHandle) {
+                throw new Error('无法获取TaskMaster项目目录访问权限');
+            }
+
+            // 保存supported-models.json（如果有模型的话）
+            if (taskMasterConfig.supportedModels && Object.keys(taskMasterConfig.supportedModels).length > 0) {
+                await saveConfig.writeFileToDirectory(
+                    projectDirHandle,
+                    'scripts/modules/supported-models.json',
+                    JSON.stringify(taskMasterConfig.supportedModels, null, 2)
+                );
+            }
+
+            // 保存API密钥到.cursor/mcp.json
+            await saveConfig.saveMCPConfigFile(projectDirHandle, allProviders);
+
+            return true;
+        } catch (error) {
+            Logger.error('同步供应商到TaskMaster项目失败', { error: error.message }, error);
+            throw error;
         }
     }
 
@@ -359,9 +731,7 @@ export class ProviderConfig {
             }
 
             // 获取支持的模型列表
-            console.log(`正在为服务商 ${provider.name} (类型: ${provider.type}) 获取支持的模型`);
             const supportedModels = await this.getSupportedModelsForProvider(provider);
-            console.log(`找到 ${supportedModels.length} 个支持的模型:`, supportedModels.map(m => m.name));
 
             if (supportedModels.length === 0) {
                 if (window.app && window.app.updateStatus) {
@@ -375,8 +745,8 @@ export class ProviderConfig {
             for (const modelInfo of supportedModels) {
                 const modelData = {
                     id: this.generateModelId(),
-                    name: modelInfo.name || modelInfo.id,
-                    modelId: modelInfo.id,
+                    name: modelInfo.name || modelInfo.id, // 使用原始模型名称
+                    modelId: modelInfo.id, // 使用原始模型ID，不添加前缀
                     providerId: provider.id,
                     providerName: provider.name,
                     allowedRoles: ['main', 'fallback'], // 默认角色
@@ -389,10 +759,10 @@ export class ProviderConfig {
                     isActive: true
                 };
 
-                // 检查是否已存在相同的模型
+                // 检查是否已存在相同的模型（使用原始模型ID）
                 const existingModels = await this.configManager.getModels();
                 const exists = existingModels.find(m =>
-                    m.modelId === modelData.modelId && m.providerId === modelData.providerId
+                    m.modelId === modelData.modelId
                 );
 
                 if (!exists) {
@@ -400,6 +770,9 @@ export class ProviderConfig {
                     addedCount++;
                 }
             }
+
+            // 重新加载providers数据以更新模型数量显示
+            await this.loadProviders();
 
             // 导航到模型页面并过滤显示该服务商的模型
             this.navigateToModelsPage(provider);
@@ -417,7 +790,7 @@ export class ProviderConfig {
             document.dispatchEvent(new CustomEvent('configChanged'));
 
         } catch (error) {
-            console.error('Failed to load provider models:', error);
+            // Failed to load provider models
             if (window.app && window.app.updateStatus) {
                 window.app.updateStatus(`❌ 加载${provider.name}模型失败: ${error.message}`, 'error');
             }
@@ -435,81 +808,118 @@ export class ProviderConfig {
      * 导航到模型页面并过滤显示该服务商的模型
      */
     navigateToModelsPage(provider) {
-        console.log(`导航到模型页面，过滤显示${provider.name}的模型`);
-
         // 切换到模型标签页
         const modelsTab = document.querySelector('[data-tab="models"]');
-        console.log(`查找模型标签页:`, modelsTab);
         if (modelsTab) {
-            console.log(`点击模型标签页`);
             modelsTab.click();
-        } else {
-            console.error('未找到模型标签页元素');
         }
 
         // 设置过滤器并重新渲染
         setTimeout(() => {
-            console.log(`检查window.app:`, window.app);
-            console.log(`检查window.app.modelConfig:`, window.app?.modelConfig);
-
             if (window.app && window.app.modelConfig) {
-                console.log(`开始重新加载模型数据`);
                 // 重新加载模型数据
                 window.app.modelConfig.loadModels().then(() => {
-                    console.log(`模型数据加载完成，准备过滤`);
                     // 延迟一点确保模型数据已经渲染
                     setTimeout(() => {
-                        console.log(`准备过滤服务商: ${provider.name} (ID: ${provider.id})`);
                         // 设置过滤器显示该服务商的模型
                         window.app.modelConfig.filterByProvider(provider.id);
                     }, 50);
-                }).catch(error => {
-                    console.error('加载模型数据失败:', error);
+                }).catch(() => {
+                    // 加载模型数据失败
                 });
-            } else {
-                console.error('window.app.modelConfig 不存在');
             }
         }, 200);
     }
 
     /**
-     * 获取服务商支持的模型列表
+     * 获取服务商支持的模型列表 - 仅从API获取
      */
     async getSupportedModelsForProvider(provider) {
-        // 根据服务商名称返回支持的模型（不使用类型，因为类型可能相同）
-        const supportedModelsMap = {
-            // 按服务商名称映射
-            'OpenAI': [
-                { id: 'gpt-4o', name: 'GPT-4o', swe_score: 0.332, maxTokens: 128000, cost: 0.005 },
-                { id: 'gpt-4o-mini', name: 'GPT-4o Mini', swe_score: 0.3, maxTokens: 128000, cost: 0.0015 },
-                { id: 'o1', name: 'o1', swe_score: 0.489, maxTokens: 200000, cost: 0.015 },
-                { id: 'o1-mini', name: 'o1 Mini', swe_score: 0.4, maxTokens: 128000, cost: 0.003 }
-            ],
-            'Anthropic': [
-                { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', swe_score: 0.49, maxTokens: 200000, cost: 0.003 },
-                { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet', swe_score: 0.623, maxTokens: 200000, cost: 0.003 }
-            ],
-            'FoApi': [
-                { id: 'deepseek-ai/DeepSeek-R1', name: 'DeepSeek R1', swe_score: 0.7, maxTokens: 65536, cost: 0.0014 },
-                { id: 'gpt-4.1-mini-2025-04-14', name: 'GPT-4.1 Mini', swe_score: 0.45, maxTokens: 128000, cost: 0.001 }
-            ],
-            'PoloAI': [
-                { id: 'gemini-2.5-pro-preview-06-05', name: 'Gemini 2.5 Pro', swe_score: 0.638, maxTokens: 2000000, cost: 0.00125 },
-                { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash', swe_score: 0.5, maxTokens: 1000000, cost: 0.000075 },
-                { id: 'gemini-2.5-flash-preview-05-20-nothinking', name: 'Gemini 2.5 Flash (No Thinking)', swe_score: 0.48, maxTokens: 1000000, cost: 0.000075 }
-            ],
-            'Google': [
-                { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', swe_score: 0.52, maxTokens: 1000000, cost: 0.000075 },
-                { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', swe_score: 0.45, maxTokens: 2000000, cost: 0.00125 }
-            ]
-        };
+        // 只从API动态获取模型列表
+        const apiModels = await this.fetchModelsFromAPI(provider);
+        return apiModels || [];
+    }
 
-        // 使用服务商名称而不是类型
-        const providerName = provider.name;
-        console.log(`查找服务商 "${providerName}" 的模型映射`);
+    /**
+     * 从API动态获取模型列表
+     */
+    async fetchModelsFromAPI(provider) {
+        if (!provider.apiKey || !provider.endpoint) {
+            throw new Error('缺少API密钥或端点配置');
+        }
 
-        const models = supportedModelsMap[providerName] || [];
-        console.log(`服务商 "${providerName}" 映射到 ${models.length} 个模型`);
+        const networkClient = this.validator.networkClient;
+        let endpoint, headers;
+
+        // 根据服务商类型构建请求
+        switch (provider.type) {
+            case 'openai':
+            case 'foapi':
+                endpoint = provider.endpoint.replace(/\/$/, '') + '/v1/models';
+                headers = {
+                    'Authorization': `Bearer ${provider.apiKey}`,
+                    'Content-Type': 'application/json'
+                };
+                break;
+            case 'anthropic':
+                // Anthropic没有公开的模型列表API，使用静态列表
+                throw new Error('Anthropic不支持动态模型获取');
+            case 'google':
+            case 'polo':
+                endpoint = provider.endpoint.replace(/\/$/, '') + '/v1/models';
+                headers = {
+                    'Authorization': `Bearer ${provider.apiKey}`,
+                    'Content-Type': 'application/json'
+                };
+                break;
+            default:
+                throw new Error(`不支持的服务商类型: ${provider.type}`);
+        }
+
+        const response = await networkClient.get(endpoint, {
+            headers,
+            timeout: 15000,
+            retries: 2
+        });
+
+        const data = await response.json();
+        return this.parseAPIModelsResponse(data, provider);
+    }
+
+    /**
+     * 解析API返回的模型数据
+     */
+    parseAPIModelsResponse(data, _provider) {
+        const models = [];
+
+        if (data.data && Array.isArray(data.data)) {
+            // OpenAI格式
+            for (const model of data.data) {
+                if (model.id && typeof model.id === 'string') {
+                    models.push({
+                        id: model.id,
+                        name: model.id,
+                        swe_score: 0.3, // 默认值
+                        maxTokens: 4096, // 默认值
+                        cost: 0.001 // 默认值
+                    });
+                }
+            }
+        } else if (data.models && Array.isArray(data.models)) {
+            // Google格式
+            for (const model of data.models) {
+                if (model.name) {
+                    const modelId = model.name.split('/').pop(); // 提取模型ID
+                    models.push({
+                        id: modelId,
+                        name: model.displayName || modelId,
+                        swe_score: 0.3,
+                        maxTokens: 4096,
+                        cost: 0.001
+                    });
+                }
+            }
+        }
 
         return models;
     }
@@ -518,13 +928,16 @@ export class ProviderConfig {
      * 生成模型ID
      */
     generateModelId() {
-        return 'model_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return 'model_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
     }
 
     showModal(html) {
         const overlay = document.getElementById('modal-overlay');
         overlay.innerHTML = html;
         overlay.classList.remove('hidden');
+
+        // 重新绑定模态框关闭事件，因为innerHTML替换了内容
+        this.bindModalCloseEvents();
     }
 
     hideModal() {
@@ -532,142 +945,233 @@ export class ProviderConfig {
     }
 
     generateId() {
-        return 'provider_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return 'provider_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
     }
 
     /**
-     * Bind real-time form validation
+     * 测试方法：直接更新MCP配置文件
+     */
+    async testUpdateMCPConfig(providerName, apiKey) {
+        try {
+            console.log(`🧪 测试更新MCP配置: ${providerName} -> ${apiKey}`);
+
+            const saveConfig = this.saveConfig;
+            if (!saveConfig) {
+                throw new Error('SaveConfig实例不可用');
+            }
+
+            let projectDirHandle = saveConfig.directoryHandleCache.get('taskmaster-project');
+            if (!projectDirHandle) {
+                projectDirHandle = await saveConfig.directoryHandleManager.restoreWithPermission('taskmaster-project', 'readwrite');
+                if (projectDirHandle) {
+                    saveConfig.directoryHandleCache.set('taskmaster-project', projectDirHandle);
+                }
+            }
+
+            if (!projectDirHandle) {
+                throw new Error('无法获取TaskMaster项目目录访问权限');
+            }
+
+            const mcpConfigPath = '.cursor/mcp.json';
+
+            // 读取现有配置
+            let mcpConfig = {};
+            try {
+                const mcpContent = await saveConfig.readFileFromDirectory(projectDirHandle, mcpConfigPath);
+                if (mcpContent) {
+                    mcpConfig = JSON.parse(mcpContent);
+                    console.log('📖 读取到现有MCP配置:', mcpConfig);
+                }
+            } catch (error) {
+                console.log('📝 创建新的MCP配置结构');
+                mcpConfig = {
+                    mcpServers: {
+                        'taskmaster-api': {
+                            command: 'node',
+                            args: ['dist/index.js'],
+                            env: {}
+                        }
+                    }
+                };
+            }
+
+            // 确保结构存在
+            if (!mcpConfig.mcpServers) mcpConfig.mcpServers = {};
+            if (!mcpConfig.mcpServers['taskmaster-api']) {
+                mcpConfig.mcpServers['taskmaster-api'] = {
+                    command: 'node',
+                    args: ['dist/index.js'],
+                    env: {}
+                };
+            }
+            if (!mcpConfig.mcpServers['taskmaster-api'].env) {
+                mcpConfig.mcpServers['taskmaster-api'].env = {};
+            }
+
+            const mcpEnv = mcpConfig.mcpServers['taskmaster-api'].env;
+            const envVarName = `${providerName.toUpperCase()}_API_KEY`;
+
+            console.log(`🔑 设置 ${envVarName} = ${apiKey}`);
+            mcpEnv[envVarName] = apiKey;
+
+            console.log('💾 准备写入配置:', JSON.stringify(mcpConfig, null, 2));
+
+            // 写入文件
+            await saveConfig.writeFileToDirectory(
+                projectDirHandle,
+                mcpConfigPath,
+                JSON.stringify(mcpConfig, null, 2)
+            );
+
+            console.log('✅ 测试更新完成');
+            return true;
+        } catch (error) {
+            console.error('❌ 测试更新失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Bind modal close events
+     */
+    bindModalCloseEvents() {
+        // 使用事件委托处理模态框关闭
+        const modalOverlay = document.getElementById('modal-overlay');
+        if (modalOverlay) {
+            // 移除之前的监听器（如果存在）
+            modalOverlay.removeEventListener('click', this.handleModalClose);
+
+            // 添加新的监听器
+            this.handleModalClose = (e) => {
+                if (e.target.dataset.action === 'close-modal' ||
+                    e.target.classList.contains('modal-overlay')) {
+                    this.hideModal();
+                }
+            };
+
+            modalOverlay.addEventListener('click', this.handleModalClose);
+        }
+    }
+
+    /**
+     * 已移除实时表单验证功能
      */
     bindFormValidation() {
+        // 不再进行任何格式验证
+    }
+
+    /**
+     * 绑定测试端点按钮事件
+     */
+    bindTestEndpointButton() {
+        const testBtn = document.getElementById('test-endpoint-btn');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => this.testEndpointConnection());
+        }
+    }
+
+    /**
+     * 测试端点连接
+     */
+    async testEndpointConnection() {
+        const testBtn = document.getElementById('test-endpoint-btn');
+        const resultDiv = document.getElementById('endpoint-test-result');
+        const nameInput = document.getElementById('provider-name');
         const endpointInput = document.getElementById('provider-endpoint');
         const apiKeyInput = document.getElementById('provider-api-key');
         const typeSelect = document.getElementById('provider-type');
-        const nameInput = document.getElementById('provider-name');
 
-        if (endpointInput) {
-            endpointInput.addEventListener('input', () => this.validateEndpointField());
-            endpointInput.addEventListener('blur', () => this.suggestProviderType());
-        }
+        if (!testBtn || !resultDiv || !endpointInput) return;
 
-        if (apiKeyInput) {
-            apiKeyInput.addEventListener('input', () => this.validateApiKeyField());
-        }
+        // 获取表单数据
+        const testProvider = {
+            name: nameInput?.value?.trim() || '测试服务商',
+            endpoint: endpointInput.value.trim(),
+            apiKey: apiKeyInput?.value?.trim() || '',
+            type: typeSelect?.value || 'openai'
+        };
 
-        if (nameInput) {
-            nameInput.addEventListener('input', () => this.validateNameField());
-        }
-
-        if (typeSelect) {
-            typeSelect.addEventListener('change', () => this.validateApiKeyField());
-        }
-    }
-
-    /**
-     * Validate endpoint field in real-time
-     */
-    validateEndpointField() {
-        const endpointInput = document.getElementById('provider-endpoint');
-        const validationDiv = document.getElementById('endpoint-validation');
-
-        if (!endpointInput || !validationDiv) return;
-
-        const endpoint = endpointInput.value.trim();
-        if (!endpoint) {
-            validationDiv.innerHTML = '';
+        // 基本验证
+        if (!testProvider.endpoint) {
+            this.showTestResult(resultDiv, false, '请输入API端点');
             return;
         }
 
-        const validation = this.validator.validateEndpoint(endpoint);
-        if (validation.isValid) {
-            validationDiv.innerHTML = '<span class="validation-success">✅ 端点格式有效</span>';
-        } else {
-            validationDiv.innerHTML = `<span class="validation-error">❌ ${validation.errors.join(', ')}</span>`;
-        }
-    }
-
-    /**
-     * Validate API key field in real-time
-     */
-    validateApiKeyField() {
-        const apiKeyInput = document.getElementById('provider-api-key');
-        const typeSelect = document.getElementById('provider-type');
-        const validationDiv = document.getElementById('apikey-validation');
-
-        if (!apiKeyInput || !validationDiv || !typeSelect) return;
-
-        const apiKey = apiKeyInput.value.trim();
-        const providerType = typeSelect.value;
-
-        if (!apiKey) {
-            validationDiv.innerHTML = '';
-            return;
-        }
-
-        const validation = this.validator.validateApiKey(apiKey, providerType);
-        if (validation.isValid) {
-            validationDiv.innerHTML = '<span class="validation-success">✅ API 密钥格式有效</span>';
-        } else {
-            validationDiv.innerHTML = `<span class="validation-error">❌ ${validation.errors.join(', ')}</span>`;
-        }
-    }
-
-    /**
-     * Validate name field in real-time
-     */
-    validateNameField() {
-        const nameInput = document.getElementById('provider-name');
-
-        if (!nameInput) return;
-
-        const name = nameInput.value.trim();
-        if (!name) return;
-
-        // Basic name validation
-        if (name.length < 2) {
-            nameInput.setCustomValidity('服务商名称至少需要2个字符');
-        } else if (name.length > 50) {
-            nameInput.setCustomValidity('服务商名称不能超过50个字符');
-        } else if (!/^[a-zA-Z0-9\s\-_\.]+$/.test(name)) {
-            nameInput.setCustomValidity('服务商名称包含无效字符');
-        } else {
-            nameInput.setCustomValidity('');
-        }
-    }
-
-    /**
-     * Suggest provider type based on endpoint
-     */
-    suggestProviderType() {
-        const endpointInput = document.getElementById('provider-endpoint');
-        const suggestionsDiv = document.getElementById('provider-suggestions');
-        const typeSelect = document.getElementById('provider-type');
-
-        if (!endpointInput || !suggestionsDiv) return;
-
-        const endpoint = endpointInput.value.trim();
-        if (!endpoint) {
-            suggestionsDiv.innerHTML = '';
-            return;
-        }
+        // 显示测试中状态
+        testBtn.innerHTML = '<span class="btn-icon">⏳</span>测试中...';
+        testBtn.disabled = true;
+        resultDiv.innerHTML = '<div class="test-loading">🔍 正在测试连接...</div>';
 
         try {
-            const suggestions = this.validator.suggestProviderType(endpoint);
-            if (suggestions.length > 0) {
-                const topSuggestion = suggestions[0];
-                suggestionsDiv.innerHTML = `
-                    <div class="provider-suggestion">
-                        <span class="suggestion-text">💡 检测到: ${topSuggestion.type} 服务商</span>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="this.parentElement.parentElement.parentElement.querySelector('#provider-type').value='${topSuggestion.type}'">
-                            应用
-                        </button>
-                    </div>
-                `;
+            // 使用验证器测试连接
+            const result = await this.validator.testProviderConnection(testProvider);
+
+            if (result.isValid) {
+                this.showTestResult(resultDiv, true, result.message, result.details);
             } else {
-                suggestionsDiv.innerHTML = '';
+                this.showTestResult(resultDiv, false, result.errors?.join(', ') || '连接测试失败', result.details);
             }
+
         } catch (error) {
-            suggestionsDiv.innerHTML = '';
+            this.showTestResult(resultDiv, false, `测试失败: ${error.message}`);
+        } finally {
+            // 恢复按钮状态
+            testBtn.innerHTML = '<span class="btn-icon">🔍</span>测试连接';
+            testBtn.disabled = false;
         }
+    }
+
+    /**
+     * 显示测试结果
+     */
+    showTestResult(resultDiv, isSuccess, message, details = null) {
+        const statusIcon = isSuccess ? '✅' : '❌';
+        const statusClass = isSuccess ? 'test-success' : 'test-error';
+
+        let html = `
+            <div class="test-result-content ${statusClass}">
+                <div class="test-message">
+                    <span class="test-icon">${statusIcon}</span>
+                    <span class="test-text">${message}</span>
+                </div>
+        `;
+
+        // 添加详细信息
+        if (details) {
+            html += '<div class="test-details">';
+
+            if (details.status) {
+                html += `<div class="detail-item">状态码: ${details.status}</div>`;
+            }
+
+            if (details.duration) {
+                html += `<div class="detail-item">响应时间: ${details.duration}ms</div>`;
+            }
+
+            if (details.modelsCount !== undefined) {
+                html += `<div class="detail-item">可用模型: ${details.modelsCount} 个</div>`;
+            }
+
+            if (details.endpoint) {
+                html += `<div class="detail-item">测试端点: ${details.endpoint}</div>`;
+            }
+
+            if (details.note) {
+                html += `<div class="detail-item">说明: ${details.note}</div>`;
+            }
+
+            html += '</div>';
+        }
+
+        html += '</div>';
+        resultDiv.innerHTML = html;
+
+        // 自动隐藏结果（成功时5秒，失败时10秒）
+        setTimeout(() => {
+            if (resultDiv.innerHTML === html) {
+                resultDiv.innerHTML = '';
+            }
+        }, isSuccess ? 5000 : 10000);
     }
 
     /**

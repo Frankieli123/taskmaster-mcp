@@ -1,16 +1,27 @@
 # Task ID: 1
-# Title: Implement Task Data Structure
+# Title: 项目设置与基础UI框架搭建
 # Status: done
 # Dependencies: None
 # Priority: high
-# Description: Design and implement the core tasks.json structure that will serve as the single source of truth for the system.
+# Description: 初始化项目结构，建立主窗口，并实现基于标签页的核心导航界面，为服务商管理、模型配置和项目配置等模块提供容器。
 # Details:
-Create the foundational data structure including:
-- JSON schema for tasks.json
-- Task model with all required fields (id, title, description, status, dependencies, priority, details, testStrategy, subtasks)
-- Validation functions for the task model
-- Basic file system operations for reading/writing tasks.json
-- Error handling for file operations
+使用前端框架（如Electron with React/Vue）搭建应用骨架。
+1. 创建主进程文件 `main.js` 和渲染进程文件 `renderer.js`。
+2. 设计主应用窗口，尺寸可调，并设置标题为 "TaskMaster UI配置工具"。
+3. 实现一个多标签页布局，包含 "服务商管理"、"模型配置"、"配置管理" 和 "日志查看" 四个主要标签页。
+4. 每个标签页暂时使用占位符内容，确保切换逻辑正常工作。
+
+**伪代码:**
+```javascript
+// main.js
+app.on('ready', () => {
+  const mainWindow = new BrowserWindow({ width: 800, height: 600 });
+  mainWindow.loadFile('index.html');
+});
+
+// renderer.js
+setupTabs(['服务商管理', '模型配置', '配置管理', '日志查看']);
+```
 
 # Test Strategy:
-Verify that the tasks.json structure can be created, read, and validated. Test with sample data to ensure all fields are properly handled and that validation correctly identifies invalid structures.
+启动应用，验证主窗口是否正确显示。点击不同标签页，检查内容区域是否相应切换，且无视觉错误。
