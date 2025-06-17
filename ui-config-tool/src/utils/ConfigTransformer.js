@@ -5,28 +5,36 @@
 
 export class ConfigTransformer {
     constructor() {
-        // Provider type mappings
+        // Provider type mappings (扩展支持更多供应商)
         this.providerTypeMap = {
             'openai': 'openai',
-            'anthropic': 'anthropic', 
+            'anthropic': 'anthropic',
             'google': 'google',
             'polo': 'openai',
-            'foapi': 'openai',
+            'poloai': 'openai',
+            'aoapi': 'openai',
             'perplexity': 'openai',
             'xai': 'openai',
-            'openrouter': 'openai'
+            'openrouter': 'openai',
+            'ollama': 'custom',
+            'whi': 'openai',
+            'foapi': 'openai'
         };
 
-        // Default endpoints for known providers
+        // Default endpoints for known providers (扩展支持更多供应商)
         this.defaultEndpoints = {
             'openai': 'https://api.openai.com',
             'anthropic': 'https://api.anthropic.com',
             'google': 'https://generativelanguage.googleapis.com',
             'polo': 'https://api.polo.ai',
-            'foapi': 'https://v2.voct.top',
+            'poloai': 'https://api.polo.ai',
+            'aoapi': 'https://api.aoapi.com',
             'perplexity': 'https://api.perplexity.ai',
             'xai': 'https://api.x.ai',
-            'openrouter': 'https://openrouter.ai/api'
+            'openrouter': 'https://openrouter.ai/api',
+            'ollama': 'http://localhost:11434',
+            'whi': 'https://doi9.top',
+            'foapi': 'https://v2.voct.top'
         };
     }
 
@@ -38,21 +46,19 @@ export class ConfigTransformer {
      */
     uiToTaskMaster(providers, models) {
         const result = {
-            supportedModels: {},
-            config: {
-                models: {},
-                providers: {}
-            }
+            supportedModels: {}
+            // 不再生成 config.json，由用户通过 TaskMaster 初始化流程管理
         };
 
         // Group models by provider and build supported-models.json structure
         providers.forEach(provider => {
             const providerModels = models.filter(model => model.providerId === provider.id);
-            
+            const providerKey = this.getProviderKey(provider);
+
+            // 总是创建供应商条目，即使没有模型也创建空数组
             if (providerModels.length > 0) {
-                const providerKey = this.getProviderKey(provider);
                 result.supportedModels[providerKey] = providerModels.map(model => ({
-                    id: model.modelId,
+                    id: model.modelId, // 使用带前缀的模型ID，如 foapi-gpt-4o
                     swe_score: model.sweScore ? model.sweScore / 100 : null,
                     cost_per_1m_tokens: {
                         input: model.costPer1MTokens?.input || 0,
@@ -61,57 +67,14 @@ export class ConfigTransformer {
                     allowed_roles: model.allowedRoles || ["main", "fallback"],
                     max_tokens: model.maxTokens || 200000
                 }));
+            } else {
+                // 没有模型的供应商也创建空数组，为后续添加模型做准备
+                result.supportedModels[providerKey] = [];
             }
         });
 
-        // Build config.json structure
-        // Set active models
-        const mainModels = models.filter(m => m.allowedRoles?.includes('main'));
-        if (mainModels.length > 0) {
-            const mainModel = mainModels[0];
-            const provider = providers.find(p => p.id === mainModel.providerId);
-            if (provider) {
-                result.config.models.main = {
-                    provider: this.getProviderKey(provider),
-                    model: mainModel.modelId
-                };
-            }
-        }
-
-        const fallbackModels = models.filter(m => m.allowedRoles?.includes('fallback'));
-        if (fallbackModels.length > 0) {
-            const fallbackModel = fallbackModels[0];
-            const provider = providers.find(p => p.id === fallbackModel.providerId);
-            if (provider) {
-                result.config.models.fallback = {
-                    provider: this.getProviderKey(provider),
-                    model: fallbackModel.modelId
-                };
-            }
-        }
-
-        const researchModels = models.filter(m => m.allowedRoles?.includes('research'));
-        if (researchModels.length > 0) {
-            const researchModel = researchModels[0];
-            const provider = providers.find(p => p.id === researchModel.providerId);
-            if (provider) {
-                result.config.models.research = {
-                    provider: this.getProviderKey(provider),
-                    model: researchModel.modelId
-                };
-            }
-        }
-
-        // Add provider configurations
-        providers.forEach(provider => {
-            const providerKey = this.getProviderKey(provider);
-            result.config.providers[providerKey] = {
-                name: provider.name,
-                endpoint: provider.endpoint,
-                type: provider.type,
-                apiKey: provider.apiKey
-            };
-        });
+        // 不再生成 config.json 内容
+        // config.json 由用户通过 TaskMaster 初始化流程（task-master init）管理
 
         return result;
     }
@@ -119,9 +82,9 @@ export class ConfigTransformer {
     /**
      * Transform TaskMaster configuration to UI format
      * @param {Object} taskMasterConfig - TaskMaster configuration object
-     * @returns {Object} UI configuration object with providers and models arrays
+     * @returns {Promise<Object>} UI configuration object with providers and models arrays
      */
-    taskMasterToUi(taskMasterConfig) {
+    async taskMasterToUi(taskMasterConfig) {
         const providers = [];
         const models = [];
         const providerIdMap = new Map(); // Map provider keys to generated IDs
@@ -132,12 +95,12 @@ export class ConfigTransformer {
         const configProviders = config.providers || {};
 
         // Create providers from supported models
-        Object.keys(supportedModels).forEach(providerKey => {
+        for (const providerKey of Object.keys(supportedModels)) {
             const providerId = this.generateId('provider');
             providerIdMap.set(providerKey, providerId);
 
             const configProvider = configProviders[providerKey] || {};
-            
+
             const provider = {
                 id: providerId,
                 name: configProvider.name || this.getProviderDisplayName(providerKey),
@@ -150,10 +113,11 @@ export class ConfigTransformer {
 
             // Create models for this provider
             const providerModels = supportedModels[providerKey];
-            providerModels.forEach(modelData => {
+            for (const modelData of providerModels) {
+                const modelDisplayName = await this.getModelDisplayName(modelData.id);
                 const model = {
                     id: this.generateId('model'),
-                    name: this.getModelDisplayName(modelData.id),
+                    name: modelDisplayName,
                     providerId: providerId,
                     modelId: modelData.id,
                     sweScore: modelData.swe_score ? modelData.swe_score * 100 : null,
@@ -165,8 +129,8 @@ export class ConfigTransformer {
                     allowedRoles: modelData.allowed_roles || ["main", "fallback"]
                 };
                 models.push(model);
-            });
-        });
+            }
+        }
 
         return { providers, models };
     }
@@ -192,10 +156,14 @@ export class ConfigTransformer {
             'anthropic': 'Anthropic',
             'google': 'Google',
             'polo': 'PoloAI',
-            'foapi': 'FoApi',
+            'poloai': 'PoloAI',
+            'aoapi': 'AoApi',
             'perplexity': 'Perplexity',
             'xai': 'xAI',
-            'openrouter': 'OpenRouter'
+            'openrouter': 'OpenRouter',
+            'ollama': 'Ollama',
+            'whi': 'Whi',
+            'foapi': 'Foapi'
         };
         return nameMap[providerKey] || providerKey.charAt(0).toUpperCase() + providerKey.slice(1);
     }
@@ -219,15 +187,162 @@ export class ConfigTransformer {
     }
 
     /**
-     * Get model display name from model ID
+     * Get model display name from model ID by using provider's mapModelId method
      * @param {string} modelId - Model ID
-     * @returns {string} Display name
+     * @returns {string} Display name (actual API model name)
      */
-    getModelDisplayName(modelId) {
+    async getModelDisplayName(modelId) {
         // Extract a display name from model ID
         const parts = modelId.split('/');
         const name = parts[parts.length - 1];
-        return name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+        // 推断提供商名称
+        const providerName = this.inferProviderFromModelId(name);
+
+        if (providerName) {
+            // 首先尝试使用内置的映射逻辑
+            const mappedName = this.getBuiltinModelMapping(name, providerName);
+            if (mappedName !== name) {
+                return mappedName;
+            }
+
+            try {
+                // 动态导入提供商JS文件
+                const providerModule = await this.loadProviderModule(providerName);
+
+                if (providerModule && providerModule.mapModelId) {
+                    // 如果提供商有mapModelId方法，使用它获取实际API模型名称
+                    return providerModule.mapModelId(name);
+                }
+            } catch (error) {
+                // 静默处理错误，避免控制台警告
+                // console.warn(`Failed to load provider module for ${providerName}:`, error);
+            }
+        }
+
+        // 如果没有找到提供商或mapModelId方法，直接返回原始模型ID
+        return name;
+    }
+
+    /**
+     * Get built-in model mapping for known providers
+     * @param {string} modelId - Model ID
+     * @param {string} providerName - Provider name
+     * @returns {string} Mapped model name
+     */
+    getBuiltinModelMapping(modelId, providerName) {
+        // 内置的提供商映射逻辑，作为动态导入的fallback
+        switch (providerName) {
+            case 'foapi':
+                if (modelId.startsWith('foapi-')) {
+                    return modelId.replace('foapi-', '');
+                }
+                break;
+            case 'poloai':
+                if (modelId.startsWith('poloai-')) {
+                    return modelId.replace('poloai-', '');
+                }
+                break;
+            case 'whi': {
+                // whi的特殊映射
+                const whiMap = {
+                    'whi-gemini-2.5-flash-preview-05-20': 'gemini-2.5-flash-preview-05-20'
+                };
+                return whiMap[modelId] || modelId;
+            }
+            default:
+                return modelId;
+        }
+        return modelId;
+    }
+
+    /**
+     * Infer provider name from model ID
+     * @param {string} modelId - Model ID
+     * @returns {string|null} Provider name or null if not found
+     */
+    inferProviderFromModelId(modelId) {
+        const providerPrefixes = {
+            'foapi-': 'foapi',
+            'poloai-': 'poloai',
+            'polo-': 'polo',
+            'aoapi-': 'aoapi',
+            'perplexity-': 'perplexity',
+            'xai-': 'xai',
+            'openrouter-': 'openrouter',
+            'whi-': 'whi'
+        };
+
+        for (const [prefix, providerName] of Object.entries(providerPrefixes)) {
+            if (modelId.startsWith(prefix)) {
+                return providerName;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Load provider module dynamically
+     * @param {string} providerName - Provider name
+     * @returns {Object|null} Provider module or null if failed
+     */
+    async loadProviderModule(providerName) {
+        try {
+            // 构建提供商文件路径 - 使用绝对路径从项目根目录
+            const providerPath = `/src/ai-providers/${providerName}.js`;
+            const module = await import(providerPath);
+
+            // 获取提供商类
+            const providerClassName = this.getProviderClassName(providerName);
+            const ProviderClass = module[providerClassName];
+
+            if (ProviderClass) {
+                // 创建提供商实例
+                const providerInstance = new ProviderClass();
+                return providerInstance;
+            }
+        } catch (error) {
+            // 静默处理错误，避免控制台警告
+            // console.warn(`Failed to import provider module ${providerName}:`, error);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get provider class name from provider name
+     * @param {string} providerName - Provider name
+     * @returns {string} Provider class name
+     */
+    getProviderClassName(providerName) {
+        const classNameMap = {
+            'foapi': 'FoapiProvider',
+            'poloai': 'PoloAIProvider',
+            'polo': 'PoloAIProvider',
+            'aoapi': 'AoapiProvider',
+            'perplexity': 'PerplexityAIProvider',
+            'xai': 'XAIProvider',
+            'openrouter': 'OpenRouterAIProvider',
+            'whi': 'WhiProvider',
+            'openai': 'OpenAIProvider',
+            'anthropic': 'AnthropicAIProvider',
+            'google': 'GoogleAIProvider'
+        };
+
+        return classNameMap[providerName] || `${providerName.charAt(0).toUpperCase() + providerName.slice(1)}Provider`;
+    }
+
+    /**
+     * Test model display name mapping (for debugging)
+     * @param {string} modelId - Model ID to test
+     * @returns {Promise<string>} Mapped model name
+     */
+    async testModelDisplayName(modelId) {
+        console.log(`Testing model display name for: ${modelId}`);
+        const result = await this.getModelDisplayName(modelId);
+        console.log(`Result: ${result}`);
+        return result;
     }
 
     /**
@@ -236,7 +351,7 @@ export class ConfigTransformer {
      * @returns {string} Generated ID
      */
     generateId(prefix = 'item') {
-        return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
     /**
@@ -297,9 +412,7 @@ export class ConfigTransformer {
             });
         }
 
-        if (!taskMasterConfig.config) {
-            errors.push('Missing config section');
-        }
+        // 不再验证 config 部分，因为它由 TaskMaster 初始化流程管理
 
         return {
             isValid: errors.length === 0,
